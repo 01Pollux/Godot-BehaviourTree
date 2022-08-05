@@ -1,0 +1,8 @@
+# SCsub
+
+Import('env')
+
+env.add_source_files(env.modules_sources, "*.cpp") # Add all cpp files to the bui
+env.add_source_files(env.modules_sources, "bt_core/*.cpp") # Add all cpp files to the bui
+env.add_source_files(env.modules_sources, "bt_core/nodes/*.cpp") # Add all cpp files to the bui
+env.add_source_files(env.modules_sources, "bt_core/editor/*.cpp") # Add all cpp files to the bui
