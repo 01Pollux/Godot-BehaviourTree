@@ -6,17 +6,17 @@ namespace behaviour_tree {
 class BehaviourTree;
 }
 namespace behaviour_tree::nodes {
-class BehaviourTreeEmitSignalNode : public IBehaviourTreeActionNode {
-	GDCLASS(BehaviourTreeEmitSignalNode, IBehaviourTreeActionNode);
+class BehaviourTreeCallFunctionNode : public IBehaviourTreeActionNode {
+	GDCLASS(BehaviourTreeCallFunctionNode, IBehaviourTreeActionNode);
 
 public:
 	static void _bind_methods() {
-		ClassDB::bind_method(D_METHOD("set_signal", "name"), &BehaviourTreeEmitSignalNode::SetSignal);
-		ClassDB::bind_method(D_METHOD("get_signal"), &BehaviourTreeEmitSignalNode::GetSignal);
-		ADD_PROPERTY(PropertyInfo(Variant::STRING, "signal"), "set_signal", "get_signal");
+		ClassDB::bind_method(D_METHOD("set_callback_function", "name"), &BehaviourTreeCallFunctionNode::SetCallbackFunction);
+		ClassDB::bind_method(D_METHOD("get_callback_function"), &BehaviourTreeCallFunctionNode::GetCallbackFunction);
+		ADD_PROPERTY(PropertyInfo(Variant::STRING, "callback_function"), "set_callback_function", "get_callback_function");
 
-		ClassDB::bind_method(D_METHOD("set_args", "args"), &BehaviourTreeEmitSignalNode::SetArgs);
-		ClassDB::bind_method(D_METHOD("get_args"), &BehaviourTreeEmitSignalNode::GetArgs);
+		ClassDB::bind_method(D_METHOD("set_args", "args"), &BehaviourTreeCallFunctionNode::SetArgs);
+		ClassDB::bind_method(D_METHOD("get_args"), &BehaviourTreeCallFunctionNode::GetArgs);
 		ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "arguments"), "set_args", "get_args");
 	}
 
@@ -50,11 +50,11 @@ protected:
 	NodeState OnExecute() override;
 
 private:
-	void SetSignal(const String &signal) {
+	void SetCallbackFunction(const String &signal) {
 		m_Signal = signal;
 	}
 
-	String GetSignal() const {
+	String GetCallbackFunction() const {
 		return m_Signal;
 	}
 
@@ -67,7 +67,9 @@ private:
 	}
 
 private:
+	Ref<BehaviourTree> m_Tree;
 	Object *m_TargetObject;
+
 	String m_Signal;
 	Vector<Variant> m_Args;
 	std::vector<const Variant *> m_TmpArgs;

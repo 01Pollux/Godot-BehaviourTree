@@ -3,71 +3,61 @@
 #include "../action_node.hpp"
 #include "../resources.hpp"
 
-namespace behaviour_tree
-{
-	class BehaviourTreeResource;
+namespace behaviour_tree {
+class BehaviourTreeResource;
 }
 
-namespace behaviour_tree::nodes
-{
-	class BehaviourTreeRefNode : public IBehaviourTreeActionNode
-	{
-		GDCLASS(BehaviourTreeRefNode, IBehaviourTreeActionNode);
-	public:
-		static void _bind_methods()
-		{
-			ClassDB::bind_method(D_METHOD("_set_tree", "tree"), &BehaviourTreeRefNode::SetTree);
-			ClassDB::bind_method(D_METHOD("_get_tree"), &BehaviourTreeRefNode::GetTree);
+namespace behaviour_tree::nodes {
+class BehaviourTreeRefNode : public IBehaviourTreeActionNode {
+	GDCLASS(BehaviourTreeRefNode, IBehaviourTreeActionNode);
 
-			ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "behaviour_tree", PROPERTY_HINT_RESOURCE_TYPE, "BehaviourTreeResource"), "_set_tree", "_get_tree");
+public:
+	static void _bind_methods() {
+		ClassDB::bind_method(D_METHOD("_set_tree", "tree"), &BehaviourTreeRefNode::SetTree);
+		ClassDB::bind_method(D_METHOD("_get_tree"), &BehaviourTreeRefNode::GetTree);
 
-			ClassDB::bind_method(D_METHOD("_set_shared_blackboard", "tree"), &BehaviourTreeRefNode::SetSharedBlackboard);
-			ClassDB::bind_method(D_METHOD("_get_shared_blackboard"), &BehaviourTreeRefNode::GetSharedBlackboard);
+		ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "behaviour_tree", PROPERTY_HINT_RESOURCE_TYPE, "BehaviourTreeResource"), "_set_tree", "_get_tree");
 
-			ADD_PROPERTY(PropertyInfo(Variant::BOOL, "shared_blackboard"), "_set_shared_blackboard", "_get_shared_blackboard");
-		}
+		ClassDB::bind_method(D_METHOD("_set_shared_blackboard", "tree"), &BehaviourTreeRefNode::SetSharedBlackboard);
+		ClassDB::bind_method(D_METHOD("_get_shared_blackboard"), &BehaviourTreeRefNode::GetSharedBlackboard);
 
-		void SerializeNode(Dictionary& out_data) const override
-		{
-			IBehaviourTreeActionNode::SerializeNode(out_data);
-			out_data["behaviour_tree"] = m_Tree->get_path();
-		}
+		ADD_PROPERTY(PropertyInfo(Variant::BOOL, "shared_blackboard"), "_set_shared_blackboard", "_get_shared_blackboard");
+	}
 
-		void DeserializeNode(const Dictionary& in_data)
-		{
-			m_Tree = ResourceLoader::load(in_data["behaviour_tree"], "BehaviourTreeResource");
-			IBehaviourTreeActionNode::DeserializeNode(in_data);
-		}
+	void SerializeNode(Dictionary &out_data) const override {
+		IBehaviourTreeActionNode::SerializeNode(out_data);
+		out_data["behaviour_tree"] = m_Tree->get_path();
+	}
 
-	public:
-		void Rewind() override;
+	void DeserializeNode(const Dictionary &in_data) {
+		m_Tree = ResourceLoader::load(in_data["behaviour_tree"], "BehaviourTreeResource");
+		IBehaviourTreeActionNode::DeserializeNode(in_data);
+	}
 
-	protected:
-		void OnEnter() override;
-		NodeState OnExecute() override;
+public:
+	void Rewind() override;
 
-	private:
-		void SetTree(const Ref<BehaviourTreeResource>& tree)
-		{
-			m_Tree = tree;
-		}
+protected:
+	void OnEnter() override;
+	NodeState OnExecute() override;
 
-		Ref<BehaviourTreeResource> GetTree()
-		{
-			return m_Tree;
-		}
+private:
+	void SetTree(const Ref<BehaviourTreeResource> &tree) {
+		m_Tree = tree;
+	}
 
-		void SetSharedBlackboard(bool shared)
-		{
+	Ref<BehaviourTreeResource> GetTree() {
+		return m_Tree;
+	}
 
-		}
+	void SetSharedBlackboard(bool shared) {
+	}
 
-		bool GetSharedBlackboard()
-		{
-			return false;
-		}
+	bool GetSharedBlackboard() {
+		return false;
+	}
 
-	private:
-		Ref<BehaviourTreeResource> m_Tree;
-	};
-}
+private:
+	Ref<BehaviourTreeResource> m_Tree;
+};
+} //namespace behaviour_tree::nodes

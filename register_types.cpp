@@ -40,29 +40,25 @@
 
 using namespace godot;
 
-void initialize_behaviour_tree_module(ModuleInitializationLevel p_level)
-{
+void initialize_behaviour_tree_module(ModuleInitializationLevel p_level) {
 	using namespace behaviour_tree;
-	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE)
-	{
+	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE) {
 		BehaviourTree::register_types();
 		BehaviourTreeResource::register_types();
-		VBehaviourTreeResource::register_types();
-	}
 #if TOOLS_ENABLED
-	else if (p_level == MODULE_INITIALIZATION_LEVEL_EDITOR)
-	{
+		VBehaviourTreeResource::register_types();
+	} else if (p_level == MODULE_INITIALIZATION_LEVEL_EDITOR) {
 		EditorPlugins::add_by_type<editor::BehaviourTreeEditor>();
-	}
 #endif // TOOLS_ENABLED
+	}
 }
 
-void uninitialize_behaviour_tree_module(ModuleInitializationLevel p_level)
-{
+void uninitialize_behaviour_tree_module(ModuleInitializationLevel p_level) {
 	using namespace behaviour_tree;
-	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE)
-	{
-		VBehaviourTreeResource::unregister_types();
+	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE) {
 		BehaviourTreeResource::unregister_types();
+#if TOOLS_ENABLED
+		VBehaviourTreeResource::unregister_types();
+#endif
 	}
 }

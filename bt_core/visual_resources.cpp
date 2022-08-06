@@ -8,6 +8,7 @@
 #include "visual_resources.hpp"
 #include "core/io/json.h"
 
+#if TOOLS_ENABLED
 namespace behaviour_tree
 {
 	/*
@@ -182,7 +183,7 @@ namespace behaviour_tree
 	}
 
 
-	Error ResourceFormatSaverVBehaviourTree::save(const String& p_path, const Ref<Resource>& p_resource, uint32_t p_flags)
+	Error ResourceFormatSaverVBehaviourTree::save(const Ref<Resource> &p_resource, const String &p_path, uint32_t p_flags)
 	{
 		Ref<VBehaviourTreeResource> btree = p_resource;
 		return btree->VSaveToFile(p_path);
@@ -199,3 +200,4 @@ namespace behaviour_tree
 			r_extensions->push_back("vbtree");
 	}
 }
+#endif

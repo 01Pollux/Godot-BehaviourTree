@@ -2,51 +2,44 @@
 
 #include "../action_node.hpp"
 
-namespace behaviour_tree::nodes
-{
-	class BehaviourTreePrintMessageNode : public IBehaviourTreeActionNode
-	{
-		GDCLASS(BehaviourTreePrintMessageNode, IBehaviourTreeActionNode);
-	public:
-		static void _bind_methods()
-		{
-			ClassDB::bind_method(D_METHOD("_set_message", "message"), &BehaviourTreePrintMessageNode::SetMessage);
-			ClassDB::bind_method(D_METHOD("_get_message"), &BehaviourTreePrintMessageNode::GetMessage);
+namespace behaviour_tree::nodes {
+class BehaviourTreePrintMessageNode : public IBehaviourTreeActionNode {
+	GDCLASS(BehaviourTreePrintMessageNode, IBehaviourTreeActionNode);
 
-			ADD_PROPERTY(PropertyInfo(Variant::STRING, "message"), "_set_message", "_get_message");
-		}
+public:
+	static void _bind_methods() {
+		ClassDB::bind_method(D_METHOD("_set_message", "message"), &BehaviourTreePrintMessageNode::SetMessage);
+		ClassDB::bind_method(D_METHOD("_get_message"), &BehaviourTreePrintMessageNode::GetMessage);
 
-		void SerializeNode(Dictionary& out_data) const override
-		{
-			IBehaviourTreeActionNode::SerializeNode(out_data);
-			out_data["message"] = m_Message;
-		}
+		ADD_PROPERTY(PropertyInfo(Variant::STRING, "message"), "_set_message", "_get_message");
+	}
 
-		void DeserializeNode(const Dictionary& in_data)
-		{
-			m_Message = in_data["message"];
-			IBehaviourTreeActionNode::DeserializeNode(in_data);
-		}
+	void SerializeNode(Dictionary &out_data) const override {
+		IBehaviourTreeActionNode::SerializeNode(out_data);
+		out_data["message"] = m_Message;
+	}
 
-	protected:
-		NodeState OnExecute() override
-		{
-			print_line(m_Message);
-			return NodeState::Success;
-		}
+	void DeserializeNode(const Dictionary &in_data) {
+		m_Message = in_data["message"];
+		IBehaviourTreeActionNode::DeserializeNode(in_data);
+	}
 
-	private:
-		String GetMessage()
-		{
-			return m_Message;
-		}
+protected:
+	NodeState OnExecute() override {
+		print_line(m_Message);
+		return NodeState::Success;
+	}
 
-		void SetMessage(const String& message)
-		{
-			m_Message = message;
-		}
+private:
+	String GetMessage() {
+		return m_Message;
+	}
 
-	private:
-		StringName m_Message = "";
-	};
-}
+	void SetMessage(const String &message) {
+		m_Message = message;
+	}
+
+private:
+	StringName m_Message = "";
+};
+} //namespace behaviour_tree::nodes
