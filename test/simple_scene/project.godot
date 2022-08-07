@@ -1,0 +1,39 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+_global_script_classes=[{
+"base": "BehaviourTreeCustomActionNode",
+"class": &"SimpleRotationBTreeNode",
+"language": &"GDScript",
+"path": "res://custom_nodes/simple_rotation.gd"
+}, {
+"base": "BehaviourTreeCustomActionNode",
+"class": &"SimpleTranslationBTreeNode",
+"language": &"GDScript",
+"path": "res://custom_nodes/simple_translation.gd"
+}]
+_global_script_class_icons={
+"SimpleRotationBTreeNode": "",
+"SimpleTranslationBTreeNode": ""
+}
+
+[application]
+
+config/name="Tmp Godot"
+config/features=PackedStringArray("4.0", "Vulkan Clustered")
+config/icon="res://icon.png"
+
+[editor_plugins]
+
+enabled=PackedStringArray()
+
+[internationalization]
+
+locale/translations_pot_files=PackedStringArray()

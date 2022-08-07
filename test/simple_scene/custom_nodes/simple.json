@@ -1,0 +1,12 @@
+{
+	"SimpleRotationBTreeNode": {
+		"name": "Simple Rotation",
+		"description": "Simple scripted node",
+		"category": "Custom/Scripts"
+	},
+	"SimpleTranslationBTreeNode": {
+		"name": "Simple Translation",
+		"description": "Simple scripted node",
+		"category": "Custom/Scripts"
+	}
+}

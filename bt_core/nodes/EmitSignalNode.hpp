@@ -24,25 +24,16 @@ public:
 
 	void SerializeNode(Dictionary &out_data) const override {
 		IBehaviourTreeActionNode::SerializeNode(out_data);
-		for (int i = 0; i < m_Args.size(); i++)
-			out_data["args/" + itos(i)] = m_Args[i];
 
+		out_data["args"] = m_Args;
 		out_data["signal"] = m_Signal;
 	}
 
 	void DeserializeNode(const Dictionary &in_data) {
 		m_Args.clear();
-		int i = 0;
-
-		while (true) {
-			String key = "args/" + itos(i++);
-			if (in_data.has(key))
-				m_Args.push_back(in_data[key]);
-			else
-				break;
-		}
-
+		m_Args = in_data["args"];
 		m_Signal = in_data["signal"];
+
 		IBehaviourTreeActionNode::DeserializeNode(in_data);
 	}
 

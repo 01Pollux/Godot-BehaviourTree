@@ -1,0 +1,15 @@
+[gd_scene load_steps=4 format=3 uid="uid://bb5d7xmfoctvi"]
+
+[ext_resource type="Texture2D" uid="uid://84eh58ks2nxs" path="res://icon.png" id="1_i3hjf"]
+[ext_resource type="Script" path="res://CurTree.gd" id="1_sliyi"]
+[ext_resource type="Script" path="res://BehaviourController.gd" id="2_72htg"]
+
+[node name="Node2D" type="Sprite2D"]
+position = Vector2(273, 175)
+texture = ExtResource("1_i3hjf")
+script = ExtResource("1_sliyi")
+
+[node name="BehaviourTree" type="Node" parent="."]
+script = ExtResource("2_72htg")
+
+[connection signal="_on_bt_callback" from="." to="." method="_on_node_2d_on_bt_callback"]
