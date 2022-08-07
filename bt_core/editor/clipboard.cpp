@@ -40,6 +40,11 @@ void ClipboardBuffer::DoCut() {
 }
 
 void ClipboardBuffer::DoPaste(bool duplicate) {
+	if (duplicate)
+		CopyToBuffer();
+
+	if (m_CopyBuffer.empty())
+		return;
 	UndoRedo *undo_redo = m_Viewer->m_UndoRedo;
 	if (duplicate) {
 		undo_redo->create_action(TTR("Duplicate Node(s)"));
@@ -169,14 +174,6 @@ void ClipboardBuffer::CopyToBuffer() {
 		item.GraphId = gnode->get_name();
 
 		gnode_names.insert(gnode->get_name());
-	}
-
-	List<GraphEdit::Connection> connections;
-	m_Viewer->m_Graph->get_connection_list(&connections);
-
-	for (auto &connection : connections) {
-		if (gnode_names.find(connection.from) != gnode_names.end() && gnode_names.find(connection.to) != gnode_names.end())
-			m_ConnectionBuffer.emplace_back(connection.from, connection.to);
 	}
 }
 } //namespace behaviour_tree::editor

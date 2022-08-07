@@ -18,7 +18,8 @@ void BehaviourTreeViewer::InitializeNodesInfo() {
 	m_RegisteredNodesInfo.emplace_back("Converter", "Common/Decorators", "BehaviourTreeConverterNode", "Mutate the upcoming node state");
 	m_RegisteredNodesInfo.emplace_back("Timeout", "Common/Decorators", "BehaviourTreeTimeOutNode", "Terminate execution if the wait time has exceeded");
 
-	m_RegisteredNodesInfo.emplace_back("Emit Signal", "Common/Functions", "BehaviourTreeEmitSignalNode", "Emit a signal from current '_object' in blackboard");
+	m_RegisteredNodesInfo.emplace_back("Emit Signal", "Common/Functions", "BehaviourTreeEmitSignalNode", "Emit a signal from current 'bt_node_object' in blackboard");
+	m_RegisteredNodesInfo.emplace_back("Call Function", "Common/Functions", "BehaviourTreeCallFunctionNode", "Call a function from current 'bt_node_object' in blackboard");
 
 	m_RegisteredNodesInfo.emplace_back("Wait Time", "Common/Actions", "BehaviourTreeWaitTimeNode", "Suspend execution for set period of time");
 	m_RegisteredNodesInfo.emplace_back("Loop", "Common/Actions", "LoopNode", "Loops on execution of a node");
@@ -35,6 +36,10 @@ void BehaviourTreeViewer::UpdateCustomNodesInfo() {
 	ScriptServer::get_global_class_list(&class_list);
 
 	for (String cur_class : class_list) {
+		Dictionary cur_node_info = m_VisualTreeHolder->GetCustomNodeInfo(cur_class);
+		if (cur_node_info.is_empty())
+			continue;
+
 		StringName native_class = ScriptServer::get_global_class_native_base(cur_class);
 		if (!(native_class == "BehaviourTreeCustomActionNode" ||
 					native_class == "BehaviourTreeCustomCompositeNode" ||
@@ -49,15 +54,12 @@ void BehaviourTreeViewer::UpdateCustomNodesInfo() {
 		custom_node.instantiate();
 		custom_node->set_script(*script);
 
-		Dictionary cur_node_info = m_VisualTreeHolder->GetCustomNodeInfo(cur_class);
-		if (!cur_node_info.is_empty()) {
-			m_CustomNodesInfo.emplace_back(
-					cur_node_info["name"],
-					cur_node_info["category"],
-					cur_class,
-					cur_node_info["description"],
-					script);
-		}
+		m_CustomNodesInfo.emplace_back(
+				cur_node_info.has("name") ? cur_node_info["name"] : "",
+				cur_node_info.has("category") ? cur_node_info["category"] : "",
+				cur_class,
+				cur_node_info.has("description") ? cur_node_info["description"] : "",
+				script);
 	}
 }
 } //namespace behaviour_tree::editor

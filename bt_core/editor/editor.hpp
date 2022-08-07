@@ -12,7 +12,6 @@
 namespace behaviour_tree {
 class BehaviourTreeResource;
 class VBehaviourTreeResource;
-class BehaviourTreeNodeInspector;
 enum class NodeType;
 } //namespace behaviour_tree
 

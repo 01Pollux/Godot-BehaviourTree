@@ -13,6 +13,13 @@ public:
 	static void _bind_methods();
 	static void register_types();
 
+	enum BehaviourTreeNodeState {
+		BEHAVIOUR_TREE_NODE_INACTIVE = -1,
+		BEHAVIOUR_TREE_NODE_RUNNING,
+		BEHAVIOUR_TREE_NODE_SUCCESS,
+		BEHAVIOUR_TREE_NODE_FAILURE
+	};
+
 public:
 	static void Traverse(IBehaviourTreeNodeBehaviour *node, const std::function<void(IBehaviourTreeNodeBehaviour *)> &callback);
 
@@ -52,6 +59,8 @@ public:
 	void GDRemoveNode(Ref<IBehaviourTreeNodeBehaviour> node) {
 		for (auto iter = m_Nodes.begin(); iter != m_Nodes.end(); iter++) {
 			if (*iter == node) {
+				if (*iter == *m_RootNode)
+					m_RootNode = nullptr;
 				DisconnectConnectedNodes(*node);
 				m_Nodes.erase(iter);
 				break;
@@ -61,6 +70,8 @@ public:
 
 	void GDRemoveNodeByIndex(int index) {
 		if (m_Nodes.size() > index) {
+			if (m_Nodes[index] == *m_RootNode)
+				m_RootNode = nullptr;
 			DisconnectConnectedNodes(*m_Nodes[index]);
 			m_Nodes.erase(m_Nodes.begin() + index);
 		}
@@ -92,3 +103,4 @@ private:
 	std::map<String, Variant> m_Blackboard;
 };
 } //namespace behaviour_tree
+VARIANT_ENUM_CAST(behaviour_tree::BehaviourTree::BehaviourTreeNodeState);

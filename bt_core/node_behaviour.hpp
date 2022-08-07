@@ -20,13 +20,6 @@ class IBehaviourTreeNodeBehaviour : public Resource {
 public:
 	static void _bind_methods();
 
-	enum BehaviourTreeNodeState {
-		BEHAVIOUR_TREE_NODE_INACTIVE = -1,
-		BEHAVIOUR_TREE_NODE_RUNNING,
-		BEHAVIOUR_TREE_NODE_SUCCESS,
-		BEHAVIOUR_TREE_NODE_FAILURE
-	};
-
 public:
 	NodeState Execute() {
 		if (m_State == NodeState::Inactive)
@@ -71,5 +64,3 @@ private:
 	NodeState m_State{ NodeState::Inactive };
 };
 } //namespace behaviour_tree
-
-VARIANT_ENUM_CAST(behaviour_tree::IBehaviourTreeNodeBehaviour::BehaviourTreeNodeState);

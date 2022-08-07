@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="BehaviourTreeCustomDecoratorNode" inherits="Resource" version="4.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../doc/class.xsd">
+	<brief_description>
+		A script based node for Behaviour Tree.
+	</brief_description>
+	<description>
+		[BehaviourTreeCustomDecoratorNode] will execute a custom 'Decorator' node behaviour-like in a GDScript environment.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_on_btnode_initialize">
+			<return type="void" />
+			<description>
+				Called when the node was initialized by the [BehaviourTree].
+			</description>
+		</method>
+		<method name="_on_btnode_rewind">
+			<return type="void" />
+			<description>
+				Called when the node was rewinded by the [BehaviourTree].
+			</description>
+		</method>
+		<method name="_on_btnode_enter">
+			<return type="void" />
+			<description>
+				Called once the node enters the execution state.
+			</description>
+		</method>
+		<method name="_on_btnode_execute">
+			<return type="BehaviourTreeNodeState" />
+			<description>
+				Called when the node is still executing.
+			</description>
+		</method>
+		<method name="_on_btnode_exit">
+			<return type="void" />
+			<description>
+				Called once the node finishes the execution state.
+			</description>
+		</method>
+		<method name="_on_btnode_serialize">
+			<return type="Dictionary" />
+			<argument index="0" name="in_data" type="Dictionary" />
+			<description>
+				Called when Behaviour Tree Runtime / Editor wants to save its nodes.
+			</description>
+		</method>
+		<method name="_on_btnode_deserialize">
+			<return type="void" />
+			<argument index="0" name="out_data" type="Dictionary" />
+			<description>
+				Called when Behaviour Tree Runtime / Editor wants to load its nodes.
+			</description>
+		</method>
+	</methods>
+</class>

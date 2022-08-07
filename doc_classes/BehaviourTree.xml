@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="BehaviourTree" inherits="RefCounted" version="4.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../doc/class.xsd">
+	<brief_description>
+		Implements model of plan execution in the Behaviour Tree Editor.
+	</brief_description>
+	<description>
+		Behaviour Tree is a tree of hierarchical nodes that control the flow of decision making of a particular object.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="execute_tree">
+			<return type="void" />
+			<description>
+				Runs the Behaviour Tree logic for the current frame.
+			</description>
+		</method>
+		<method name="set_always_running">
+			<return type="void" />
+			<argument index="0" name="run_always" type="bool" />
+			<description>
+				If [code]run_always[/code] is set to true, the current Behaviour Tree will always run regardless of it's root's state.
+			</description>
+		</method>
+		<method name="rewind">
+			<return type="void" />
+			<description>
+				Reset root and it's childrens state and calls [code]_on_btnode_rewind[/code] for custom nodes..
+			</description>
+		</method>
+		<method name="initialize_tree">
+			<return type="void" />
+			<description>
+				Initiliaze nodes blackboard and calls [code]_on_btnode_initialize[/code] for custom nodes.
+			</description>
+		</method>
+		<method name="set_root">
+			<return type="void" />
+			<argument index="0" name="root_node" type="IBehaviourTreeNodeBehaviour" />
+			<description>
+				Set the root node.
+			</description>
+		</method>
+		<method name="get_root">
+			<return type="IBehaviourTreeNodeBehaviour" />
+			<description>
+				Get the root node.
+			</description>
+		</method>
+	</methods>
+</class>

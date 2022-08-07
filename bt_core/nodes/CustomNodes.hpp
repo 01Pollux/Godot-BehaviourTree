@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../tree.hpp"
 #include "../action_node.hpp"
 #include "../composite_node.hpp"
 #include "../decorator_node.hpp"
@@ -16,7 +17,7 @@ protected:
 	GDVIRTUAL0(_on_btnode_rewind);
 
 	GDVIRTUAL0(_on_btnode_enter);
-	GDVIRTUAL0R(BehaviourTreeNodeState, _on_btnode_execute);
+	GDVIRTUAL0R(BehaviourTree::BehaviourTreeNodeState, _on_btnode_execute);
 	GDVIRTUAL0(_on_btnode_exit);
 
 	GDVIRTUAL1RC(Dictionary, _on_btnode_serialize, Dictionary);
@@ -46,7 +47,7 @@ protected:
 	GDVIRTUAL0(_on_btnode_rewind);
 
 	GDVIRTUAL0(_on_btnode_enter);
-	GDVIRTUAL0R(BehaviourTreeNodeState, _on_btnode_execute);
+	GDVIRTUAL0R(BehaviourTree::BehaviourTreeNodeState, _on_btnode_execute);
 	GDVIRTUAL0(_on_btnode_exit);
 
 	GDVIRTUAL1RC(Dictionary, _on_btnode_serialize, Dictionary);
@@ -80,7 +81,7 @@ protected:
 	GDVIRTUAL0(_on_btnode_rewind);
 
 	GDVIRTUAL0(_on_btnode_enter);
-	GDVIRTUAL0R(BehaviourTreeNodeState, _on_btnode_execute);
+	GDVIRTUAL0R(BehaviourTree::BehaviourTreeNodeState, _on_btnode_execute);
 	GDVIRTUAL0(_on_btnode_exit);
 
 	GDVIRTUAL1RC(Dictionary, _on_btnode_serialize, Dictionary);

@@ -13,14 +13,6 @@ class BehaviourTreeViewer;
 
 class ClipboardBuffer {
 public:
-	struct Connection {
-		String From;
-		String To;
-
-		Connection(const String &from, const String &to) :
-				From(from), To(to) {}
-	};
-
 	struct CopyItem {
 		Ref<IBehaviourTreeNodeBehaviour> Node;
 		Vector2 Position;
@@ -51,8 +43,6 @@ private:
 
 	BehaviourTreeViewer *m_Viewer;
 	std::vector<CopyItem> m_CopyBuffer;
-	;
-	std::vector<Connection> m_ConnectionBuffer;
 };
 } //namespace behaviour_tree::editor
 #endif // TOOLS_ENABLED

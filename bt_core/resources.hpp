@@ -60,7 +60,9 @@ private:
 
 protected:
 	static void WriteStringToFile(Ref<FileAccess> &file, const String &key);
+	static void WriteVariantToFile(Ref<FileAccess> &file, const Variant &var);
 	static String ReadStringFromFile(Ref<FileAccess> &file);
+	static Variant ReadVariantFromFile(Ref<FileAccess> &file);
 
 private:
 	Ref<BehaviourTree> m_Tree;

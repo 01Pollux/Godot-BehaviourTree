@@ -20,8 +20,8 @@ X							number of nodes										= 2 bytes
 	"SequenceNode"			name of node										= pascal string
 	"res://script.gd"		path of the script									= pascal string
 	X ...					indices of childrens, -1 indicates the end of array	= 2 bytes each
-	X						number of keyvalue for data							= 2 bytes
-	String -- String		pair of key and value for data						= pascal string
+	X						number of keyvalue for data							= 4 bytes
+	Variant -- Variant		pair of key and value for data						= variants
 
 	...
 */
@@ -157,16 +157,14 @@ auto BehaviourTreeResource::LoadNodesFromFile(Ref<FileAccess> &file) -> NodeLoad
 			}
 		}
 
-		uint16_t data_count = file->get_16();
 		Dictionary dict;
-
-		for (uint16_t j = 0; j < data_count; j++) {
-			String key = ReadStringFromFile(file);
-			String value = ReadStringFromFile(file);
-			dict[key] = value;
+		{
+			Variant var = ReadVariantFromFile(file);
+			if (var.get_type() == Variant::DICTIONARY)
+				dict = var;
 		}
-
-		if (data_count != 0)
+		
+		if (!dict.is_empty())
 			node->DeserializeNode(dict);
 
 		loaded_nodes.emplace_back(std::move(info));
@@ -201,18 +199,7 @@ void BehaviourTreeResource::SaveNodesToFile(const NodeLoadInfoContainer &loaded_
 
 		Dictionary out_data;
 		cur_node.Node->SerializeNode(out_data);
-
-		file->store_16(static_cast<uint16_t>(out_data.size()));
-
-		if (!out_data.is_empty()) {
-			auto keys = out_data.keys();
-			auto values = out_data.values();
-
-			for (int i = 0; i < keys.size(); i++) {
-				WriteStringToFile(file, keys[i]);
-				WriteStringToFile(file, values[i]);
-			}
-		}
+		WriteVariantToFile(file, out_data);
 	}
 }
 
@@ -304,6 +291,233 @@ void BehaviourTreeResource::WriteStringToFile(Ref<FileAccess> &file, const Strin
 		file->store_pascal_string(key);
 }
 
+void BehaviourTreeResource::WriteVariantToFile(Ref<FileAccess> &file, const Variant &var) {
+	file->store_8(var.get_type());
+	switch (var.get_type()) {
+		case Variant::BOOL:
+			file->store_8(var.operator bool());
+			break;
+		case Variant::INT:
+			file->store_32(var.operator int());
+			break;
+		case Variant::FLOAT:
+			file->store_float(var);
+			break;
+		case Variant::STRING:
+			WriteStringToFile(file, var);
+			break;
+
+		case Variant::VECTOR2: {
+			Vector2 val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::VECTOR2I: {
+			Vector2i val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::RECT2: {
+			Rect2 val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::RECT2I: {
+			Rect2i val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::VECTOR3: {
+			Vector3 val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::VECTOR3I: {
+			Vector3i val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::TRANSFORM2D: {
+			Transform2D val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::VECTOR4: {
+			Vector4 val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::VECTOR4I: {
+			Vector4i val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::PLANE: {
+			Plane val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::QUATERNION: {
+			Quaternion val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::AABB: {
+			AABB val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::BASIS: {
+			Basis val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::TRANSFORM3D: {
+			Transform3D val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::PROJECTION: {
+			Projection val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+
+		// misc types
+		case Variant::COLOR: {
+			Color color = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&color), sizeof(color));
+			break;
+		}
+		case Variant::STRING_NAME: {
+			WriteStringToFile(file, var);
+			break;
+		}
+		case Variant::NODE_PATH: {
+			NodePath val = var;
+			WriteStringToFile(file, val);
+			break;
+		}
+		case Variant::RID: {
+			RID val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::OBJECT: {
+			Object *val = var;
+			file->store_64(val->get_instance_id());
+			break;
+		}
+		case Variant::CALLABLE: {
+			Callable val = var;
+			ERR_FAIL_COND_MSG(val.is_custom() || val.is_null(), "Invalid Callable passed in Variant");
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::SIGNAL: {
+			Signal val = var;
+			file->store_buffer(reinterpret_cast<const uint8_t *>(&val), sizeof(val));
+			break;
+		}
+		case Variant::DICTIONARY: {
+			Dictionary val = var;
+			auto keys = val.keys();
+			auto vals = val.values();
+			file->store_32(val.size());
+			for (int i = 0; i < val.size(); i++) {
+				WriteVariantToFile(file, keys[i]);
+				WriteVariantToFile(file, vals[i]);
+			}
+			break;
+		}
+		case Variant::ARRAY: {
+			Array val = var;
+			file->store_32(val.size());
+			for (int i = 0; i < val.size(); i++)
+				WriteVariantToFile(file, val[i]);
+			break;
+		}
+
+		// typed arrays
+		case Variant::PACKED_BYTE_ARRAY: {
+			PackedByteArray val = var;
+			file->store_32(val.size());
+			for (int i = 0; i < val.size(); i++)
+				file->store_8(val[i]);
+			break;
+		}
+		case Variant::PACKED_INT32_ARRAY: {
+			PackedInt32Array val = var;
+			file->store_32(val.size());
+			for (int i = 0; i < val.size(); i++)
+				file->store_32(val[i]);
+			break;
+		}
+		case Variant::PACKED_INT64_ARRAY: {
+			PackedInt64Array val = var;
+			file->store_32(val.size());
+			for (int i = 0; i < val.size(); i++)
+				file->store_64(val[i]);
+			break;
+		}
+		case Variant::PACKED_FLOAT32_ARRAY: {
+			PackedFloat32Array val = var;
+			file->store_32(val.size());
+			for (int i = 0; i < val.size(); i++)
+				file->store_float(val[i]);
+			break;
+		}
+		case Variant::PACKED_FLOAT64_ARRAY: {
+			PackedFloat64Array val = var;
+			file->store_32(val.size());
+			for (int i = 0; i < val.size(); i++)
+				file->store_double(val[i]);
+			break;
+		}
+		case Variant::PACKED_STRING_ARRAY: {
+			PackedStringArray val = var;
+			file->store_32(val.size());
+			for (int i = 0; i < val.size(); i++)
+				WriteStringToFile(file, val[i]);
+			break;
+		}
+		case Variant::PACKED_VECTOR2_ARRAY: {
+			PackedVector2Array val = var;
+			file->store_32(val.size());
+			for (int i = 0; i < val.size(); i++) {
+				file->store_float(val[i].x);
+				file->store_float(val[i].y);
+			}
+			break;
+		}
+		case Variant::PACKED_VECTOR3_ARRAY: {
+			PackedVector3Array val = var;
+			file->store_32(val.size());
+			for (int i = 0; i < val.size(); i++) {
+				file->store_float(val[i].x);
+				file->store_float(val[i].y);
+				file->store_float(val[i].z);
+			}
+			break;
+		}
+		case Variant::PACKED_COLOR_ARRAY: {
+			PackedColorArray val = var;
+			file->store_32(val.size());
+			for (int i = 0; i < val.size(); i++) {
+				file->store_float(val[i].r);
+				file->store_float(val[i].g);
+				file->store_float(val[i].b);
+				file->store_float(val[i].a);
+			}
+			break;
+		}
+
+		default: {
+			ERR_FAIL_COND_MSG(var.get_type() == Variant::NIL || var.is_null(), "Invalid variant in Behaviour Tree");
+		}
+	}
+}
+
 String BehaviourTreeResource::ReadStringFromFile(Ref<FileAccess> &file) {
 	uint32_t len = file->get_32();
 	String str = "";
@@ -319,6 +533,258 @@ String BehaviourTreeResource::ReadStringFromFile(Ref<FileAccess> &file) {
 		str.parse_utf8(cs.ptr(), cs.size());
 	}
 	return str;
+}
+
+Variant BehaviourTreeResource::ReadVariantFromFile(Ref<FileAccess> &file) {
+	switch (file->get_8()) {
+		case Variant::BOOL:
+			return static_cast<bool>(file->get_8());
+			break;
+		case Variant::INT:
+			return static_cast<int>(file->get_32());
+			break;
+		case Variant::FLOAT:
+			return static_cast<float>(file->get_float());
+			break;
+		case Variant::STRING:
+			return ReadStringFromFile(file);
+			break;
+
+		case Variant::VECTOR2: {
+			Vector2 val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::VECTOR2I: {
+			Vector2i val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::RECT2: {
+			Rect2 val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::RECT2I: {
+			Rect2i val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::VECTOR3: {
+			Vector3 val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::VECTOR3I: {
+			Vector3i val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::TRANSFORM2D: {
+			Transform2D val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::VECTOR4: {
+			Vector4 val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::VECTOR4I: {
+			Vector4i val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::PLANE: {
+			Plane val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::QUATERNION: {
+			Quaternion val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::AABB: {
+			AABB val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::BASIS: {
+			Basis val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::TRANSFORM3D: {
+			Transform3D val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::PROJECTION: {
+			Projection val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+
+		// misc types
+		case Variant::COLOR: {
+			Color val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::STRING_NAME: {
+			return ReadStringFromFile(file);
+			break;
+		}
+		case Variant::NODE_PATH: {
+			return NodePath(ReadStringFromFile(file));
+		}
+		case Variant::RID: {
+			RID val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::OBJECT: {
+			Object *val = ObjectDB::get_instance(ObjectID(file->get_64()));
+			if (!val)
+				ERR_PRINT("Invalid Object passed in Variant");
+			return val;
+		}
+		case Variant::CALLABLE: {
+			Callable val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			if (val.is_custom() || val.is_null())
+				ERR_PRINT("Invalid Callable passed in Variant");
+			return val;
+		}
+		case Variant::SIGNAL: {
+			Signal val;
+			file->get_buffer(reinterpret_cast<uint8_t *>(&val), sizeof(val));
+			return val;
+		}
+		case Variant::DICTIONARY: {
+			Dictionary val;
+			int size = file->get_32();
+			for (int i = 0; i < size; i++) {
+				Variant key = ReadVariantFromFile(file);
+				Variant value = ReadVariantFromFile(file);
+				val[key] = value;
+			}
+			return val;
+		}
+		case Variant::ARRAY: {
+			Array val;
+			int size = file->get_32();
+			val.resize(size);
+
+			for (int i = 0; i < size; i++)
+				val[i] = ReadVariantFromFile(file);
+			return val;
+		}
+
+		// typed arrays
+		case Variant::PACKED_BYTE_ARRAY: {
+			PackedByteArray val;
+			int size = file->get_32();
+
+			for (int i = 0; i < size; i++)
+				val.append(file->get_8());
+
+			return val;
+		}
+		case Variant::PACKED_INT32_ARRAY: {
+			PackedInt32Array val;
+			int size = file->get_32();
+
+			for (int i = 0; i < size; i++)
+				val.append(file->get_32());
+
+			return val;
+		}
+		case Variant::PACKED_INT64_ARRAY: {
+			PackedInt64Array val;
+			int size = file->get_32();
+
+			for (int i = 0; i < size; i++)
+				val.append(file->get_64());
+
+			return val;
+		}
+		case Variant::PACKED_FLOAT32_ARRAY: {
+			PackedFloat32Array val;
+			int size = file->get_32();
+
+			for (int i = 0; i < size; i++)
+				val.append(file->get_float());
+
+			return val;
+		}
+		case Variant::PACKED_FLOAT64_ARRAY: {
+			PackedFloat64Array val;
+			int size = file->get_32();
+
+			for (int i = 0; i < size; i++)
+				val.append(file->get_double());
+
+			return val;
+		}
+		case Variant::PACKED_STRING_ARRAY: {
+			PackedStringArray val;
+			int size = file->get_32();
+
+			for (int i = 0; i < size; i++)
+				val.append(ReadStringFromFile(file));
+
+			return val;
+		}
+		case Variant::PACKED_VECTOR2_ARRAY: {
+			PackedVector2Array val;
+			int size = file->get_32();
+
+			for (int i = 0; i < size; i++) {
+				Vector2 vec;
+				vec.x = file->get_float();
+				vec.y = file->get_float();
+				val.append(vec);
+			}
+
+			return val;
+		}
+		case Variant::PACKED_VECTOR3_ARRAY: {
+			PackedVector3Array val;
+			int size = file->get_32();
+
+			for (int i = 0; i < size; i++) {
+				Vector3 vec;
+				vec.x = file->get_float();
+				vec.y = file->get_float();
+				vec.z = file->get_float();
+				val.append(vec);
+			}
+
+			return val;
+		}
+		case Variant::PACKED_COLOR_ARRAY: {
+			PackedColorArray val;
+			int size = file->get_32();
+
+			for (int i = 0; i < size; i++) {
+				Color color;
+				color.r = file->get_float();
+				color.g = file->get_float();
+				color.b = file->get_float();
+				color.a = file->get_float();
+				val.append(color);
+			}
+
+			return val;
+		}
+
+		default: {
+			ERR_PRINT("Invalid variant in Behaviour Tree");
+			return Variant{};
+		}
+	}
 }
 
 Ref<Resource> ResourceFormatLoaderBehaviourTree::load(

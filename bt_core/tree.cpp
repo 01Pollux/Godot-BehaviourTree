@@ -75,10 +75,10 @@ void BehaviourTree::register_types() {
 	GDREGISTER_CLASS(nodes::BehaviourTreeSequenceNode);
 	GDREGISTER_CLASS(nodes::BehaviourTreeCustomCompositeNode);
 
-	BIND_CONSTANT(IBehaviourTreeNodeBehaviour::BEHAVIOUR_TREE_NODE_INACTIVE);
-	BIND_CONSTANT(IBehaviourTreeNodeBehaviour::BEHAVIOUR_TREE_NODE_RUNNING);
-	BIND_CONSTANT(IBehaviourTreeNodeBehaviour::BEHAVIOUR_TREE_NODE_SUCCESS);
-	BIND_CONSTANT(IBehaviourTreeNodeBehaviour::BEHAVIOUR_TREE_NODE_FAILURE);
+	BIND_CONSTANT(BEHAVIOUR_TREE_NODE_INACTIVE);
+	BIND_CONSTANT(BEHAVIOUR_TREE_NODE_RUNNING);
+	BIND_CONSTANT(BEHAVIOUR_TREE_NODE_SUCCESS);
+	BIND_CONSTANT(BEHAVIOUR_TREE_NODE_FAILURE);
 }
 
 void BehaviourTree::Traverse(IBehaviourTreeNodeBehaviour *node, const std::function<void(IBehaviourTreeNodeBehaviour *)> &callback) {

@@ -142,6 +142,9 @@ void BehaviourTreeViewer::InitializeGraph() {
 	m_Graph->connect("connection_from_empty", callable_mp(this, &BehaviourTreeViewer::OnNodeConnectFromEmpty));
 
 	m_Graph->connect("delete_nodes_request", callable_mp(this, &BehaviourTreeViewer::OnDeleteNodesRequest));
+	m_Graph->connect("duplicate_nodes_request", callable_mp(this, &BehaviourTreeViewer::OnPopupItemSelect).bind(RightClickPopupType::RCPT_DUPLICATE));
+	m_Graph->connect("copy_nodes_request", callable_mp(this, &BehaviourTreeViewer::OnPopupItemSelect).bind(RightClickPopupType::RCPT_COPY));
+	m_Graph->connect("paste_nodes_request", callable_mp(this, &BehaviourTreeViewer::OnPopupItemSelect).bind(RightClickPopupType::RCPT_PASTE));
 	m_Graph->connect("gui_input", callable_mp(this, &BehaviourTreeViewer::OnGuiInput));
 
 	m_Graph->connect("node_selected", callable_mp(this, &BehaviourTreeViewer::OnNodeSelected));

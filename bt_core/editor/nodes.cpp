@@ -44,7 +44,7 @@ void BehaviourTreeViewer::AddNodeByIndex(int node_index) {
 
 		node_info.Title = load_info.Name;
 		node_info.Comment = load_info.Description;
-		node_info.Position = (m_NodeSpawnPosition + m_Graph->get_scroll_ofs()) / m_Graph->get_zoom();
+		SetNodePosition(node_index, (m_NodeSpawnPosition + m_Graph->get_scroll_ofs()) / m_Graph->get_zoom());
 
 		UpdateLayout(last_id);
 	}
@@ -63,7 +63,7 @@ void BehaviourTreeViewer::AddNode(Ref<IBehaviourTreeNodeBehaviour> node, Vector2
 	tree_nodes.push_back(node);
 	auto &node_info = m_VisualTreeHolder->AddNodeInfo();
 
-	node_info.Position = position;
+	SetNodePosition(last_node_id, position);
 	node_info.Title = title;
 	node_info.Comment = comment;
 
@@ -158,6 +158,8 @@ void BehaviourTreeViewer::LinkGraphNode(GraphNode *gnode, int node_index, const 
 
 	if (composite || decorator) {
 		gnode->set_slot(0, true, 0, port_color, true, 0, port_color);
+		gnode->set_slot_color_left(0, Color(1.f, 1.f, 0.f, 0.65f));
+		gnode->set_slot_color_right(0, Color(1.f, 0.6f, 0.4f, 1.f));
 
 		std::vector<IBehaviourTreeNodeBehaviour *> childrens;
 		tree_node->GetChildrens(childrens);
@@ -184,6 +186,8 @@ void BehaviourTreeViewer::LinkGraphNode(GraphNode *gnode, int node_index, const 
 		}
 	} else {
 		gnode->set_slot(0, true, 0, port_color, false, 0, Color());
+		gnode->set_slot_color_left(0, Color(1.f, 1.f, 0.f, 0.65f));
+
 		if (CheckPendingLinkFromNode(tree_node))
 			link_type = 1;
 	}
@@ -250,7 +254,9 @@ void BehaviourTreeViewer::SetNodePosition(int node_index, const Vector2 &positio
 	};
 
 	auto compare_func = [](const SortData &lhs, const SortData &rhs) noexcept -> bool {
-		return lhs.Position.y < rhs.Position.y;
+		if (lhs.Position.y >= rhs.Position.y)
+			return lhs.Position.x < rhs.Position.x;
+		return true;
 	};
 
 	std::set<SortData, decltype(compare_func)> sorted_childrens(compare_func);
@@ -269,7 +275,6 @@ void BehaviourTreeViewer::SetNodePosition(int node_index, const Vector2 &positio
 	composite->GetChildrens().clear();
 	for (auto &data : sorted_childrens) {
 		composite->GetChildrens().emplace_back(data.Node);
-		print_line(data.Node->get_class_name());
 	}
 }
 

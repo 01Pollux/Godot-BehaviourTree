@@ -1,6 +1,6 @@
 
-#include "../tree.hpp"
 #include "CallFunctionNode.hpp"
+#include "../tree.hpp"
 
 namespace behaviour_tree::nodes {
 void BehaviourTreeCallFunctionNode::Initialize() {
@@ -16,9 +16,13 @@ NodeState BehaviourTreeCallFunctionNode::OnExecute() {
 	for (size_t i = 0; i < m_Args.size(); i++)
 		m_TmpArgs.emplace_back(&m_Args[i]);
 
-	Callable::CallError err{};
-	Variant ret = m_TargetObject->callp(m_Signal, m_TmpArgs.data(), m_Args.size(), err);
-	m_Tree->set_meta("bt_last_return", ret);
+	if (m_IsDeffered) {
+		MessageQueue::get_singleton()->push_callp(m_TargetObject, m_FunctionName, m_TmpArgs.data(), m_Args.size());
+	} else {
+		Callable::CallError err{};
+		Variant ret = m_TargetObject->callp(m_FunctionName, m_TmpArgs.data(), m_Args.size(), err);
+		m_Tree->set_meta("bt_last_return", ret);
+	}
 
 	return NodeState::Success;
 }
