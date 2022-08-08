@@ -15,13 +15,7 @@ public:
 	static void _bind_methods() {
 		ClassDB::bind_method(D_METHOD("_set_tree", "tree"), &BehaviourTreeRefNode::SetTree);
 		ClassDB::bind_method(D_METHOD("_get_tree"), &BehaviourTreeRefNode::GetTree);
-
 		ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "behaviour_tree", PROPERTY_HINT_RESOURCE_TYPE, "BehaviourTreeResource"), "_set_tree", "_get_tree");
-
-		ClassDB::bind_method(D_METHOD("_set_shared_blackboard", "tree"), &BehaviourTreeRefNode::SetSharedBlackboard);
-		ClassDB::bind_method(D_METHOD("_get_shared_blackboard"), &BehaviourTreeRefNode::GetSharedBlackboard);
-
-		ADD_PROPERTY(PropertyInfo(Variant::BOOL, "shared_blackboard"), "_set_shared_blackboard", "_get_shared_blackboard");
 	}
 
 	void SerializeNode(Dictionary &out_data) const override {
@@ -48,13 +42,6 @@ private:
 
 	Ref<BehaviourTreeResource> GetTree() {
 		return m_Tree;
-	}
-
-	void SetSharedBlackboard(bool shared) {
-	}
-
-	bool GetSharedBlackboard() {
-		return false;
 	}
 
 private:
