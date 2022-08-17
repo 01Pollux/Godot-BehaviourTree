@@ -28,6 +28,11 @@ X							number of nodes										= 2 bytes
 void BehaviourTreeResource::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_behaviour_tree", "tree"), &BehaviourTreeResource::SetTree);
 	ClassDB::bind_method(D_METHOD("get_behaviour_tree"), &BehaviourTreeResource::GetTree);
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "behaviour_tree", PROPERTY_HINT_RESOURCE_TYPE, "BehaviourTree", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT | PROPERTY_USAGE_NO_EDITOR), "set_behaviour_tree", "get_behaviour_tree");
+
+	ClassDB::bind_method(D_METHOD("set_always_running", "run_always"), &BehaviourTreeResource::SetAlwaysRunning);
+	ClassDB::bind_method(D_METHOD("get_always_running"), &BehaviourTreeResource::IsAlwaysRunning);
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "is_always_running"), "set_always_running", "get_always_running");
 }
 
 void BehaviourTreeResource::register_types() {
@@ -48,13 +53,9 @@ void BehaviourTreeResource::unregister_types() {
 	BTreeResSaver.unref();
 }
 
-void BehaviourTreeResource::SetTree(Ref<BehaviourTree> res) noexcept {
+void BehaviourTreeResource::SetTree(Ref<BehaviourTree> res) {
+	m_Tree.unref();
 	m_Tree = res;
-	res.unref();
-}
-
-BehaviourTreeResource::BehaviourTreeResource() {
-	m_Tree.instantiate();
 }
 
 Error BehaviourTreeResource::LoadFromFile(const String &path, Ref<FileAccess> file) {
@@ -72,6 +73,9 @@ Error BehaviourTreeResource::LoadFromFile(const String &path, Ref<FileAccess> fi
 		NodeLoadInfoContainer loaded_nodes = LoadNodesFromFile(file);
 		ResolveNodesChildrensFromFile(loaded_nodes);
 
+		if (m_Tree.is_null())
+			m_Tree.instantiate();
+
 		auto &tree_nodes = m_Tree->GetNodes();
 
 		if (!loaded_nodes.empty()) {
@@ -85,7 +89,9 @@ Error BehaviourTreeResource::LoadFromFile(const String &path, Ref<FileAccess> fi
 
 		m_Tree->SetAlwaysRunning(always_running);
 	} catch (const std::exception &ex) {
+#if TOOLS_ENABLED
 		ERR_PRINT(ex.what());
+#endif
 		err = file->get_error();
 	}
 
@@ -123,7 +129,7 @@ auto BehaviourTreeResource::LoadNodesFromFile(Ref<FileAccess> &file) -> NodeLoad
 		ERR_CONTINUE_MSG(object == nullptr, "Invalid node name/script");
 
 		Ref<IBehaviourTreeNodeBehaviour> node = Object::cast_to<IBehaviourTreeNodeBehaviour>(object);
-		;
+		
 		ERR_CONTINUE_MSG(node == nullptr, "Node is not of type IBehaviourTreeNodeBehaviour");
 
 		if (!node_script.is_empty()) {
@@ -163,7 +169,7 @@ auto BehaviourTreeResource::LoadNodesFromFile(Ref<FileAccess> &file) -> NodeLoad
 			if (var.get_type() == Variant::DICTIONARY)
 				dict = var;
 		}
-		
+
 		if (!dict.is_empty())
 			node->DeserializeNode(dict);
 
@@ -826,11 +832,10 @@ Error ResourceFormatSaverBehaviourTree::save(const Ref<Resource> &p_resource, co
 }
 
 bool ResourceFormatSaverBehaviourTree::recognize(const Ref<Resource> &p_resource) const {
-	return p_resource->get_class_name() == "BehaviourTreeResource";
+	return Object::cast_to<BehaviourTreeResource>(*p_resource) != nullptr;
 }
 
 void ResourceFormatSaverBehaviourTree::get_recognized_extensions(const Ref<Resource> &p_resource, List<String> *r_extensions) const {
-	if (Object::cast_to<BehaviourTreeResource>(*p_resource))
-		r_extensions->push_back("btree");
+	r_extensions->push_back("btree");
 }
 } //namespace behaviour_tree

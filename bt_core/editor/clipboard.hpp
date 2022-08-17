@@ -1,5 +1,7 @@
 #pragma once
 
+#if TOOLS_ENABLED
+
 #include <set>
 #include <vector>
 
@@ -7,7 +9,6 @@
 #include "core/object/undo_redo.h"
 #include "scene/gui/graph_edit.h"
 
-#if TOOLS_ENABLED
 namespace behaviour_tree::editor {
 class BehaviourTreeViewer;
 

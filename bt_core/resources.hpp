@@ -28,18 +28,17 @@ public:
 	static void unregister_types();
 
 public:
-	BehaviourTreeResource();
 	Error LoadFromFile(const String &path, Ref<FileAccess> file = nullptr);
 	Error SaveToFile(const String &path, Ref<FileAccess> file = nullptr);
 
 	static inline Ref<ResourceFormatLoaderBehaviourTree> BTreeResLoader;
 	static inline Ref<ResourceFormatSaverBehaviourTree> BTreeResSaver;
 
-	Ref<BehaviourTree> GetTree() const noexcept {
+	Ref<BehaviourTree> GetTree() const {
 		return m_Tree;
 	}
 
-	void SetTree(Ref<BehaviourTree> res) noexcept;
+	void SetTree(Ref<BehaviourTree> res);
 
 private:
 	struct NodeLoadInfo {
@@ -63,6 +62,16 @@ protected:
 	static void WriteVariantToFile(Ref<FileAccess> &file, const Variant &var);
 	static String ReadStringFromFile(Ref<FileAccess> &file);
 	static Variant ReadVariantFromFile(Ref<FileAccess> &file);
+
+private:
+	bool IsAlwaysRunning() {
+		return m_Tree.is_valid() ? GetTree()->IsAlwaysRunning() : false;
+	}
+
+	void SetAlwaysRunning(bool state) {
+		if (m_Tree.is_valid())
+			m_Tree->SetAlwaysRunning(state);
+	}
 
 private:
 	Ref<BehaviourTree> m_Tree;

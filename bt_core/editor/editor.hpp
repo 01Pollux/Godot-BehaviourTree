@@ -1,5 +1,7 @@
 #pragma once
 
+#if TOOLS_ENABLED
+
 #include <deque>
 #include <map>
 #include <vector>
@@ -8,7 +10,6 @@
 #include "editor/create_dialog.h"
 #include "editor/plugins/script_editor_plugin.h"
 
-#if TOOLS_ENABLED
 namespace behaviour_tree {
 class BehaviourTreeResource;
 class VBehaviourTreeResource;
@@ -59,14 +60,26 @@ public:
 	BehaviourTreeViewer();
 	~BehaviourTreeViewer();
 
+	void SetAllowEdits(bool allow) {
+		m_AllowEdits = allow;
+	}
+	Array RemoteStates;
+
 	void StartEditing(VBehaviourTreeResource *p_object);
+	VBehaviourTreeResource* GetEditedObject() {
+		return *m_VisualTreeHolder;
+	}
+
 	void UpdateLayout(int id);
+
+	void _notification(int notification_type);
 
 private:
 	void InitializeGraph();
 	void InitializePopupMenu();
 	void InitializeCreateNodesTree();
 	void InitializeNodesInfo();
+	void InitializeThemes();
 	void UpdateCustomNodesInfo();
 
 private:
@@ -83,7 +96,7 @@ private:
 	void SetNodeTitle(int node_index, const String &title);
 	void SetNodeComment(int node_index, const String &comment);
 
-	GraphNode *CreateGraphNode(int node_idx, const Ref<Theme> &theme);
+	GraphNode *CreateGraphNode(int node_idx);
 	void LinkGraphNode(GraphNode *graph_node, int node_idx, const Color &port_color);
 
 	void OnNodeDrag(const Vector2 &p_from, const Vector2 &p_to, int node_idx);
@@ -91,6 +104,7 @@ private:
 
 	void SetNodePosition(int node_idx, const Vector2 &position);
 	void SetAsRoot(int node_idx);
+	void OnCommentChanged(TextEdit *text_edit, int node_index);
 
 	void OnNodeConnect(const String &from, int, const String &to, int);
 	void OnNodeDisconnect(const String &from, int, const String &to, int);
@@ -137,6 +151,8 @@ private:
 
 private:
 	Ref<VBehaviourTreeResource> m_VisualTreeHolder{};
+	std::map<std::string, Ref<Theme>> m_Themes;
+	bool m_AllowEdits{};
 
 	UndoRedo *m_UndoRedo{};
 	GraphEdit *m_Graph{};
@@ -169,14 +185,18 @@ public:
 
 public:
 	String get_name() const override { return "Behaviour Tree"; }
-	//bool has_main_screen() const;
-	void make_visible(bool p_visible) override;
+	//bool has_main_screen() const override;
+	void make_visible(bool visible) override;
 	void edit(Object *p_object) override;
 	bool handles(Object *p_object) const override;
 
 private:
-	BehaviourTreeViewer *m_TreeViewer;
+	void OnRemoteObjectUpdated(ObjectID p_id);
+
+private:
 	Button *m_TreeOpenButton;
+	BehaviourTreeViewer *m_TreeViewer;
+	//Button *m_TreeOpenButton;
 };
 } //namespace behaviour_tree::editor
 #endif // TOOLS_ENABLED

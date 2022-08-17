@@ -29,8 +29,6 @@ public:
 	Error VLoadFromFile(const String &path);
 	Error VSaveToFile(const String &path);
 
-	Ref<BehaviourTreeResource> GetResources();
-
 	static inline Ref<ResourceFormatLoaderVBehaviourTree> VBTreeResLoader;
 	static inline Ref<ResourceFormatSaverVBehaviourTree> VBTreeResSaver;
 
@@ -56,16 +54,7 @@ public:
 
 private:
 	void SetNodesDataPath(const String &file_path);
-	String GetNodesDataPath();
-
-	bool IsAlwaysRunning() {
-		return GetTree().is_valid() ? GetTree()->IsAlwaysRunning() : false;
-	}
-
-	void SetAlwaysRunning(bool state) {
-		if (GetTree().is_valid())
-			GetTree()->SetAlwaysRunning(state);
-	}
+	String GetNodesDataPath() const;
 
 private:
 	std::vector<VisualNodeInfo> m_NodesInfo;

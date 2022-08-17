@@ -1,4 +1,5 @@
 
+#if TOOLS_ENABLED
 #include "editor.hpp"
 #include "editor/editor_file_dialog.h"
 #include "editor/editor_node.h"
@@ -8,7 +9,6 @@
 #include "../decorator_node.hpp"
 #include "../visual_resources.hpp"
 
-#if TOOLS_ENABLED
 namespace behaviour_tree::editor {
 static bool GetNodeInfoFromResource(
 		VBehaviourTreeResource *resource,
@@ -44,7 +44,7 @@ void BehaviourTreeViewer::AddNodeByIndex(int node_index) {
 
 		node_info.Title = load_info.Name;
 		node_info.Comment = load_info.Description;
-		SetNodePosition(node_index, (m_NodeSpawnPosition + m_Graph->get_scroll_ofs()) / m_Graph->get_zoom());
+		SetNodePosition(last_id, m_NodeSpawnPosition);
 
 		UpdateLayout(last_id);
 	}
@@ -92,7 +92,7 @@ void BehaviourTreeViewer::SetNodeComment(int node_index, const String &comment) 
 	node_info.Comment = comment;
 }
 
-GraphNode *BehaviourTreeViewer::CreateGraphNode(int node_index, const Ref<Theme> &theme) {
+GraphNode *BehaviourTreeViewer::CreateGraphNode(int node_index) {
 	BehaviourTree *tree = m_VisualTreeHolder->GetTree().ptr();
 	auto &tree_nodes = tree->GetNodes();
 
@@ -104,14 +104,11 @@ GraphNode *BehaviourTreeViewer::CreateGraphNode(int node_index, const Ref<Theme>
 	GraphNode *gnode = memnew(GraphNode);
 	m_Graph->add_child(gnode);
 
-	gnode->set_position_offset(node_info.Position);
+	gnode->set_position_offset(node_info.Position * EDSCALE);
 	gnode->set_title(node_info.Title);
 
-	gnode->set_theme(theme);
+	gnode->set_theme(is_root ? m_Themes["root"] : m_Themes["default"]);
 	gnode->set_overlay(GraphNode::OVERLAY_BREAKPOINT);
-
-	if (is_root)
-		gnode->set_modulate(Color(1.f, .6f, .6f, 1.f));
 
 	gnode->set_meta("_node", tree_node);
 	m_GraphNodes[tree_node] = gnode;
@@ -128,16 +125,16 @@ GraphNode *BehaviourTreeViewer::CreateGraphNode(int node_index, const Ref<Theme>
 	container->add_child(set_root);
 	set_root->connect("pressed", callable_mp(this, &BehaviourTreeViewer::SetAsRoot).bind(node_index));
 
-	Label *description = memnew(Label);
+	TextEdit *description = memnew(TextEdit);
 	container->add_child(description);
 	description->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	description->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	description->set_text(node_info.Comment);
 
-	description->set_autowrap_mode(TextServer::AUTOWRAP_WORD_SMART);
-	description->set("theme_override_font_sizes", 8);
-
-	gnode->set_meta("_comment", description);
+	description->set_line_wrapping_mode(TextEdit::LINE_WRAPPING_BOUNDARY);
+	description->set_fit_content_height_enabled(true);
+	description->set("theme_override_font_sizes", 14);
+	description->connect("text_changed", callable_mp(this, &BehaviourTreeViewer::OnCommentChanged).bind(description, node_index));
 
 	return gnode;
 }
@@ -173,15 +170,19 @@ void BehaviourTreeViewer::LinkGraphNode(GraphNode *gnode, int node_index, const 
 			link_type = 1;
 		else if (!m_PendingLinkToNode.is_empty()) {
 			if (composite) {
-				IBehaviourTreeNodeBehaviour *to_node = Object::cast_to<IBehaviourTreeNodeBehaviour>(
-						m_Graph->get_node(m_PendingLinkToNode)->get_meta("_node"));
-				composite->AddChild(to_node);
-				link_type = 2;
+				Node *node = m_Graph->get_node(m_PendingLinkToNode);
+				IBehaviourTreeNodeBehaviour *to_node = node ? Object::cast_to<IBehaviourTreeNodeBehaviour>(node->get_meta("_node")) : nullptr;
+				if (to_node) {
+					composite->AddChild(to_node);
+					link_type = 2;
+				}
 			} else if (decorator) {
-				IBehaviourTreeNodeBehaviour *to_node = Object::cast_to<IBehaviourTreeNodeBehaviour>(
-						m_Graph->get_node(m_PendingLinkToNode)->get_meta("_node"));
-				decorator->SetChild(to_node);
-				link_type = 2;
+				Node *node = m_Graph->get_node(m_PendingLinkToNode);
+				IBehaviourTreeNodeBehaviour *to_node = node ? Object::cast_to<IBehaviourTreeNodeBehaviour>(node->get_meta("_node")) : nullptr;
+				if (to_node) {
+					decorator->SetChild(to_node);
+					link_type = 2;
+				}
 			}
 		}
 	} else {
@@ -231,6 +232,10 @@ void BehaviourTreeViewer::Deffered_OnNodeDrag() {
 }
 
 void BehaviourTreeViewer::SetNodePosition(int node_index, const Vector2 &position) {
+	if (!m_AllowEdits) {
+		WARN_PRINT("Can't edit a behaviour tree while editting");
+		return;
+	}
 	auto &node_info = m_VisualTreeHolder->GetNodeInfo(node_index);
 	node_info.Position = position;
 
@@ -290,21 +295,35 @@ void BehaviourTreeViewer::SetAsRoot(int node_index) {
 		m_UndoRedo->add_undo_method(tree, "set_root", tree->GDGetRootNode());
 
 		GraphNode *new_gnode = FindGraphNode(node_index);
-		m_UndoRedo->add_do_method(new_gnode, "set_modulate", Color(1.f, .6f, .6f, 1.f));
-		m_UndoRedo->add_undo_method(new_gnode, "set_modulate", Color(1.f, 1.f, 1.f, 1.f));
+		m_UndoRedo->add_do_method(new_gnode, "set_theme", m_Themes["root"]);
+		m_UndoRedo->add_undo_method(new_gnode, "set_theme", m_Themes["default"]);
 
 		if (GraphNode *old_gnode = FindGraphNode(*tree->GDGetRootNode())) {
-			m_UndoRedo->add_do_method(old_gnode, "set_modulate", Color(1.f, 1.f, 1.f, 1.f));
-			m_UndoRedo->add_undo_method(old_gnode, "set_modulate", Color(1.f, .6f, .6f, 1.f));
+			m_UndoRedo->add_do_method(old_gnode, "set_theme", m_Themes["default"]);
+			m_UndoRedo->add_undo_method(old_gnode, "set_theme", m_Themes["root"]);
 		}
 
 		m_UndoRedo->commit_action();
 	}
 }
 
+void BehaviourTreeViewer::OnCommentChanged(TextEdit *text_edit, int node_index) {
+	if (!m_AllowEdits) {
+		WARN_PRINT("Can't edit a behaviour tree while editting");
+		return;
+	}
+
+	auto &node_info = m_VisualTreeHolder->GetNodeInfo(node_index);
+	node_info.Comment = text_edit->get_text();
+}
+
 void BehaviourTreeViewer::OnNodeConnect(const String &from, int, const String &to, int) {
 	if (from == to)
 		return;
+	if (!m_AllowEdits) {
+		WARN_PRINT("Can't edit a behaviour tree while editting");
+		return;
+	}
 
 	BehaviourTree *tree = m_VisualTreeHolder->GetTree().ptr();
 	auto &tree_nodes = tree->GetNodes();
@@ -318,8 +337,8 @@ void BehaviourTreeViewer::OnNodeConnect(const String &from, int, const String &t
 	IBehaviourTreeNodeBehaviour *to_node = Object::cast_to<IBehaviourTreeNodeBehaviour>(m_Graph->get_node(to)->get_meta("_node"));
 
 	if (IBehaviourTreeCompositeNode *composite = Object::cast_to<IBehaviourTreeCompositeNode>(from_node)) {
-		m_UndoRedo->add_do_method(composite, "add_child", Ref(to_node));
-		m_UndoRedo->add_undo_method(composite, "remove_child", Ref(to_node));
+		m_UndoRedo->add_do_method(composite, "add_btchild", Ref(to_node));
+		m_UndoRedo->add_undo_method(composite, "remove_btchild", Ref(to_node));
 	} else if (IBehaviourTreeDecoratorNode *decorator = Object::cast_to<IBehaviourTreeDecoratorNode>(from_node)) {
 		Ref<IBehaviourTreeNodeBehaviour> previous_child = decorator->GetChild();
 		if (previous_child.is_valid()) {
@@ -329,8 +348,8 @@ void BehaviourTreeViewer::OnNodeConnect(const String &from, int, const String &t
 			}
 		}
 
-		m_UndoRedo->add_do_method(decorator, "set_child", Ref(to_node));
-		m_UndoRedo->add_undo_method(decorator, "set_child", previous_child);
+		m_UndoRedo->add_do_method(decorator, "set_btchild", Ref(to_node));
+		m_UndoRedo->add_undo_method(decorator, "set_btchild", previous_child);
 	}
 
 	m_UndoRedo->commit_action();
@@ -339,6 +358,10 @@ void BehaviourTreeViewer::OnNodeConnect(const String &from, int, const String &t
 void BehaviourTreeViewer::OnNodeDisconnect(const String &from, int, const String &to, int) {
 	if (from == to)
 		return;
+	if (!m_AllowEdits) {
+		WARN_PRINT("Can't edit a behaviour tree while editting");
+		return;
+	}
 
 	BehaviourTree *tree = m_VisualTreeHolder->GetTree().ptr();
 	auto &tree_nodes = tree->GetNodes();
@@ -352,26 +375,36 @@ void BehaviourTreeViewer::OnNodeDisconnect(const String &from, int, const String
 	IBehaviourTreeNodeBehaviour *to_node = Object::cast_to<IBehaviourTreeNodeBehaviour>(m_Graph->get_node(to)->get_meta("_node"));
 
 	if (IBehaviourTreeCompositeNode *composite = Object::cast_to<IBehaviourTreeCompositeNode>(from_node)) {
-		m_UndoRedo->add_do_method(composite, "remove_child", Ref(to_node));
-		m_UndoRedo->add_undo_method(composite, "add_child", Ref(to_node));
+		m_UndoRedo->add_do_method(composite, "remove_btchild", Ref(to_node));
+		m_UndoRedo->add_undo_method(composite, "add_btchild", Ref(to_node));
 	}
 
 	if (IBehaviourTreeDecoratorNode *decorator = Object::cast_to<IBehaviourTreeDecoratorNode>(to_node);
 			decorator && decorator->GetChild() == to_node) {
-		m_UndoRedo->add_do_method(decorator, "set_child", Ref<IBehaviourTreeNodeBehaviour>());
-		m_UndoRedo->add_undo_method(decorator, "set_child", decorator->GetChild());
+		m_UndoRedo->add_do_method(decorator, "set_btchild", Ref<IBehaviourTreeNodeBehaviour>());
+		m_UndoRedo->add_undo_method(decorator, "set_btchild", decorator->GetChild());
 	}
 
 	m_UndoRedo->commit_action();
 }
 
 void BehaviourTreeViewer::OnNodeConnectToEmpty(const String &from, int, const Vector2 &position) {
+	if (!m_AllowEdits) {
+		WARN_PRINT("Can't edit a behaviour tree while editting");
+		return;
+	}
+
 	m_PendingLinkFromNode = from;
 	DisplayMembersDialog();
 	m_NodeSpawnPosition = position;
 }
 
 void BehaviourTreeViewer::OnNodeConnectFromEmpty(const String &to, int, const Vector2 &position) {
+	if (!m_AllowEdits) {
+		WARN_PRINT("Can't edit a behaviour tree while editting");
+		return;
+	}
+
 	m_PendingLinkToNode = to;
 	DisplayMembersDialog();
 	m_NodeSpawnPosition = position;
@@ -379,7 +412,10 @@ void BehaviourTreeViewer::OnNodeConnectFromEmpty(const String &to, int, const Ve
 
 bool BehaviourTreeViewer::CheckPendingLinkFromNode(IBehaviourTreeNodeBehaviour *to_node) {
 	if (!m_PendingLinkFromNode.is_empty()) {
-		Variant from_node = m_Graph->get_node(m_PendingLinkFromNode)->get_meta("_node");
+		Node *gnode = m_Graph->get_node(m_PendingLinkFromNode);
+		if (!gnode)
+			return false;
+		Variant from_node = gnode->get_meta("_node");
 
 		if (IBehaviourTreeCompositeNode *from_composite = Object::cast_to<IBehaviourTreeCompositeNode>(from_node)) {
 			from_composite->AddChild(to_node);
@@ -393,6 +429,11 @@ bool BehaviourTreeViewer::CheckPendingLinkFromNode(IBehaviourTreeNodeBehaviour *
 }
 
 void BehaviourTreeViewer::OnDeleteNodesRequest(const TypedArray<StringName> &p_nodes) {
+	if (!m_AllowEdits) {
+		WARN_PRINT("Can't edit a behaviour tree while editting");
+		return;
+	}
+
 	std::vector<IBehaviourTreeNodeBehaviour *> to_erase;
 
 	if (p_nodes.is_empty()) {
@@ -432,9 +473,9 @@ void BehaviourTreeViewer::DeleteNodes(const std::vector<IBehaviourTreeNodeBehavi
 		Ref parent_node = m_VisualTreeHolder->GetTree()->GetParentOfNode(*ref_node);
 		if (parent_node.is_valid()) {
 			if (IBehaviourTreeCompositeNode *composite = Object::cast_to<IBehaviourTreeCompositeNode>(*parent_node))
-				m_UndoRedo->add_undo_method(composite, "add_child", ref_node);
+				m_UndoRedo->add_undo_method(composite, "add_btchild", ref_node);
 			else
-				m_UndoRedo->add_undo_method(Object::cast_to<IBehaviourTreeDecoratorNode>(*parent_node), "set_child", ref_node);
+				m_UndoRedo->add_undo_method(Object::cast_to<IBehaviourTreeDecoratorNode>(*parent_node), "set_btchild", ref_node);
 		}
 	}
 

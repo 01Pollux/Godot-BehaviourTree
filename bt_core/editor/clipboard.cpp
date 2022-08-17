@@ -1,12 +1,13 @@
 
+#if TOOLS_ENABLED
 #include "clipboard.hpp"
 #include "editor.hpp"
 
+#include "editor/editor_scale.h"
 #include "../composite_node.hpp"
 #include "../decorator_node.hpp"
 #include "../visual_resources.hpp"
 
-#if TOOLS_ENABLED
 namespace behaviour_tree::editor {
 static bool GetNodeInfoFromResource(
 		VBehaviourTreeResource *resource,
@@ -68,17 +69,17 @@ void ClipboardBuffer::DoPaste(bool duplicate) {
 		VBehaviourTreeResource::VisualNodeInfo node_info;
 		GetNodeInfoFromResource(*m_Viewer->m_VisualTreeHolder, *item.Node, node_info);
 
-		undo_redo->add_do_method(m_Viewer, "_add_node", node, node_info.Position + Vector2(100, -70), node_info.Title, node_info.Comment);
+		undo_redo->add_do_method(m_Viewer, "_add_node", node, node_info.Position + Vector2(100, -70) * EDSCALE, node_info.Title, node_info.Comment);
 		undo_redo->add_undo_method(m_Viewer, "_remove_node", node);
 	}
 
 	auto connect_to_child = [undo_redo](Ref<IBehaviourTreeNodeBehaviour> &parent, Ref<IBehaviourTreeNodeBehaviour> &child) {
 		if (IBehaviourTreeCompositeNode *composite = Object::cast_to<IBehaviourTreeCompositeNode>(*parent)) {
-			undo_redo->add_do_method(composite, "add_child", child);
-			undo_redo->add_undo_method(composite, "remove_child", child);
+			undo_redo->add_do_method(composite, "add_btchild", child);
+			undo_redo->add_undo_method(composite, "remove_btchild", child);
 		} else if (IBehaviourTreeDecoratorNode *decorator = Object::cast_to<IBehaviourTreeDecoratorNode>(*parent)) {
-			undo_redo->add_do_method(decorator, "set_child", child);
-			undo_redo->add_undo_method(decorator, "set_child", decorator->GetChild());
+			undo_redo->add_do_method(decorator, "set_btchild", child);
+			undo_redo->add_undo_method(decorator, "set_btchild", decorator->GetChild());
 		}
 	};
 

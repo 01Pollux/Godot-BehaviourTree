@@ -14,8 +14,8 @@
 #include "action_node.hpp"
 #include "nodes/BehaviourTreeRefNode.hpp"
 #include "nodes/BreakPointNode.hpp"
-#include "nodes/EmitSignalNode.hpp"
 #include "nodes/CallFunctionNode.hpp"
+#include "nodes/EmitSignalNode.hpp"
 #include "nodes/PrintMessageNode.hpp"
 #include "nodes/WaitTimeNode.hpp"
 
@@ -43,6 +43,10 @@ void BehaviourTree::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("create_node", "node_name"), &BehaviourTree::GDCreateNode);
 	ClassDB::bind_method(D_METHOD("remove_node", "node"), &BehaviourTree::GDRemoveNode);
 	ClassDB::bind_method(D_METHOD("remove_node_index", "node_index"), &BehaviourTree::GDRemoveNodeByIndex);
+
+#if TOOLS_ENABLED
+	ADD_SIGNAL(MethodInfo("_on_btree_execute"));
+#endif
 }
 
 void BehaviourTree::register_types() {
@@ -109,6 +113,9 @@ void BehaviourTree::ExecuteTree() {
 	ERR_FAIL_COND(m_RootNode.ptr() == nullptr);
 	if (m_RootNode->GetState() < NodeState::SuccessOrFailure || m_RunAlways) {
 		m_RootNode->Execute();
+#if TOOLS_ENABLED
+		emit_signal("_on_btree_execute");
+#endif
 		if (m_RunAlways && m_RootNode->GetState() >= NodeState::SuccessOrFailure)
 			Rewind();
 	}

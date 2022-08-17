@@ -36,6 +36,7 @@
 
 #if TOOLS_ENABLED
 #include "bt_core/editor/editor.hpp"
+#include "bt_core/editor/remote_tree.hpp"
 #endif
 
 using namespace godot;
@@ -47,6 +48,7 @@ void initialize_behaviour_tree_module(ModuleInitializationLevel p_level) {
 		BehaviourTreeResource::register_types();
 #if TOOLS_ENABLED
 		VBehaviourTreeResource::register_types();
+		GDREGISTER_CLASS(BehaviourTreeRemoteTreeHolder);
 	} else if (p_level == MODULE_INITIALIZATION_LEVEL_EDITOR) {
 		EditorPlugins::add_by_type<editor::BehaviourTreeEditor>();
 #endif // TOOLS_ENABLED

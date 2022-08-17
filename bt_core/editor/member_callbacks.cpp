@@ -1,7 +1,8 @@
 
-#include "editor.hpp"
-
 #if TOOLS_ENABLED
+#include "editor.hpp"
+#include "../visual_resources.hpp"
+
 namespace behaviour_tree::editor {
 void BehaviourTreeViewer::OnNodeTextFilterChange(const String &text) {
 	UpdateOptionsMenu();
@@ -61,7 +62,8 @@ void BehaviourTreeViewer::OnNodeMemberCreate() {
 		m_UndoRedo->create_action("Add Node");
 
 		m_UndoRedo->add_do_method(this, "_add_node_idx", node_index);
-		m_UndoRedo->add_undo_method(this, "_remove_node_idx", node_index);
+		size_t last_id = m_VisualTreeHolder->GetTree()->GetNodes().size();
+		m_UndoRedo->add_undo_method(this, "_remove_node_idx", last_id);
 
 		m_UndoRedo->commit_action();
 	}

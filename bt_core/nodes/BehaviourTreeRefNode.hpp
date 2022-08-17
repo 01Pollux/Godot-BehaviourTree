@@ -15,7 +15,7 @@ public:
 	static void _bind_methods() {
 		ClassDB::bind_method(D_METHOD("_set_tree", "tree"), &BehaviourTreeRefNode::SetTree);
 		ClassDB::bind_method(D_METHOD("_get_tree"), &BehaviourTreeRefNode::GetTree);
-		ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "behaviour_tree", PROPERTY_HINT_RESOURCE_TYPE, "BehaviourTreeResource"), "_set_tree", "_get_tree");
+		ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "behaviour_tree", PROPERTY_HINT_RESOURCE_TYPE, "BehaviourTreeResource", PROPERTY_USAGE_NO_EDITOR), "_set_tree", "_get_tree");
 	}
 
 	void SerializeNode(Dictionary &out_data) const override {

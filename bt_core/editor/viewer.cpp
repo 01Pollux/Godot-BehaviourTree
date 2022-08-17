@@ -1,4 +1,5 @@
 
+#if TOOLS_ENABLED
 #include "editor.hpp"
 #include <algorithm>
 #include <map>
@@ -12,7 +13,6 @@
 #include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
 
-#if TOOLS_ENABLED
 namespace behaviour_tree::editor {
 void BehaviourTreeViewer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_add_node_idx", "node_index"), &BehaviourTreeViewer::AddNodeByIndex);
@@ -32,6 +32,7 @@ void BehaviourTreeViewer::_bind_methods() {
 }
 
 BehaviourTreeViewer::BehaviourTreeViewer() {
+	InitializeThemes();
 	InitializeGraph();
 	InitializePopupMenu();
 	InitializeCreateNodesTree();
@@ -46,7 +47,7 @@ BehaviourTreeViewer::~BehaviourTreeViewer() {
 }
 
 void BehaviourTreeViewer::StartEditing(VBehaviourTreeResource *p_object) {
-	if (m_VisualTreeHolder.ptr() == p_object)
+	if (m_VisualTreeHolder.ptr() == p_object || !p_object)
 		return;
 
 	if (m_VisualTreeHolder.is_valid())
@@ -73,17 +74,10 @@ void BehaviourTreeViewer::UpdateLayout(int id) {
 
 	m_Graph->show();
 
-	Ref<Theme> theme;
-	theme.instantiate();
-	Ref<Font> label_font = EditorNode::get_singleton()->get_editor_theme()->get_font("main_msdf", "EditorFonts");
-	theme->set_font("font", "Label", label_font);
-	theme->set_font("font", "LineEdit", label_font);
-	theme->set_font("font", "Button", label_font);
-
 	const Color mono_color = get_theme_color(SNAME("mono_color"), SNAME("Editor"));
 
 	if (id >= 0) {
-		GraphNode *gnode = CreateGraphNode(id, theme);
+		GraphNode *gnode = CreateGraphNode(id);
 		LinkGraphNode(gnode, id, mono_color);
 	} else {
 		auto &tree_nodes = m_VisualTreeHolder->GetTree()->GetNodes();
@@ -91,10 +85,56 @@ void BehaviourTreeViewer::UpdateLayout(int id) {
 		gnodes.reserve(tree_nodes.size());
 
 		for (size_t i = 0; i < tree_nodes.size(); i++)
-			gnodes.push_back(CreateGraphNode(i, theme));
+			gnodes.push_back(CreateGraphNode(i));
 
 		for (size_t i = 0; i < gnodes.size(); i++)
 			LinkGraphNode(gnodes[i], i, mono_color);
+	}
+}
+
+void BehaviourTreeViewer::_notification(int notification_type) {
+	if (notification_type != NOTIFICATION_PROCESS || m_AllowEdits)
+		return;
+
+	auto get_or_find_theme = [this](auto iter, const char *theme_name) {
+		if (iter == m_Themes.end())
+			iter = m_Themes.find(theme_name);
+		return iter;
+	};
+
+	auto trunning = m_Themes.end(),
+		 tsuccess = trunning,
+		 tfailure = trunning,
+		 tdefault = trunning;
+
+	for (int i = 0; i < RemoteStates.size(); i++) {
+		IBehaviourTreeNodeBehaviour* node = *m_VisualTreeHolder->GetTree()->GetNodes()[i];
+		GraphNode *gnode = m_GraphNodes[node];
+
+		if (node == m_VisualTreeHolder->GetTree()->GetRootNode())
+			continue;
+		switch (static_cast<NodeState>(int(RemoteStates[i]))) {
+			case NodeState::Inactive: {
+				tdefault = get_or_find_theme(tdefault, "default");
+				gnode->set_theme(tdefault->second);
+				break;
+			}
+			case NodeState::Running: {
+				trunning = get_or_find_theme(trunning, "running");
+				gnode->set_theme(trunning->second);
+				break;
+			}
+			case NodeState::Success: {
+				tsuccess = get_or_find_theme(tsuccess, "success");
+				gnode->set_theme(tsuccess->second);
+				break;
+			}
+			case NodeState::Failure: {
+				tfailure = get_or_find_theme(tfailure, "failure");
+				gnode->set_theme(tfailure->second);
+				break;
+			}
+		}
 	}
 }
 
@@ -228,13 +268,13 @@ void BehaviourTreeViewer::InitializeCreateNodesTree() {
 }
 
 void BehaviourTreeViewer::DisplayMembersDialog() {
+	if (!m_AllowEdits) {
+		return;
+	}
+
 	UpdateOptionsMenu();
 
-	Vector2 position = m_Graph->get_size();
-	position.x *= .5f;
-	m_NodeCreateDialog->set_position((m_Graph->get_screen_position() + position) * EDSCALE);
-	m_NodeCreateDialog->popup();
-
+	m_NodeCreateDialog->popup_centered_clamped(Size2(420, 660));
 	m_NodesTextFilter->call_deferred(SNAME("grab_focus")); // Still not visible.
 	m_NodesTextFilter->select_all();
 }

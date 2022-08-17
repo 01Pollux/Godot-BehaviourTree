@@ -8,8 +8,8 @@ class IBehaviourTreeCompositeNode : public IBehaviourTreeNodeBehaviour {
 
 public:
 	static void _bind_methods() {
-		ClassDB::bind_method(D_METHOD("add_child", "child"), &IBehaviourTreeCompositeNode::AddChild);
-		ClassDB::bind_method(D_METHOD("remove_child", "child"), &IBehaviourTreeCompositeNode::RemoveChild);
+		ClassDB::bind_method(D_METHOD("add_btchild", "child"), &IBehaviourTreeCompositeNode::AddChild);
+		ClassDB::bind_method(D_METHOD("remove_btchild", "child"), &IBehaviourTreeCompositeNode::RemoveChild);
 	}
 
 public:

@@ -8,8 +8,8 @@ class IBehaviourTreeDecoratorNode : public IBehaviourTreeNodeBehaviour {
 
 public:
 	static void _bind_methods() {
-		ClassDB::bind_method(D_METHOD("set_child", "child"), &IBehaviourTreeDecoratorNode::SetChild);
-		ClassDB::bind_method(D_METHOD("get_child"), &IBehaviourTreeDecoratorNode::GetChild);
+		ClassDB::bind_method(D_METHOD("set_btchild", "child"), &IBehaviourTreeDecoratorNode::SetChild);
+		ClassDB::bind_method(D_METHOD("get_btchild"), &IBehaviourTreeDecoratorNode::GetChild);
 	}
 
 public:
