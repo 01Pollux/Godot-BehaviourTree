@@ -4,7 +4,7 @@
 
 namespace behaviour_tree::nodes {
 void BehaviourTreeEmitSignalNode::Initialize() {
-	Node *holder = Object::cast_to<Node>(GetBehaviourTree()->get_meta("bt_target_node"));
+	Node *holder = Object::cast_to<Node>(GetBehaviourTree()->GetBlackboard("bt_target_node"));
 	if (holder && !m_TargetPath.is_empty())
 		m_TargetNode = holder->get_node(m_TargetPath);
 	else

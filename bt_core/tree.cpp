@@ -269,7 +269,7 @@ void BehaviourTreeHolder::_notification(int p_notification) {
 	switch (p_notification) {
 		case NOTIFICATION_ENTER_TREE: {
 			if (m_Tree.is_valid()) {
-				m_Tree->set_meta("bt_target_node", get_node(GetTargetPath()));
+				m_Tree->SetBlackboard("bt_target_node", get_node(GetTargetPath()));
 			}
 			break;
 		}
