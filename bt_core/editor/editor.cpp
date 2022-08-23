@@ -9,8 +9,19 @@
 #include "editor/debugger/editor_debugger_inspector.h"
 #include "editor/debugger/script_editor_debugger.h"
 #include "editor/editor_node.h"
+#include "editor/editor_plugin.h"
+#include "editor/scene_tree_dock.h"
+
+#include "nodes/CallFunctionNodeEditorPlugin.hpp"
+#include "nodes/EmitSignalNodeEditorPlugin.hpp"
 
 namespace behaviour_tree::editor {
+void BehaviourTreeEditor::register_types() {
+	EditorPlugins::add_by_type<BehaviourTreeEditor>();
+	EditorPlugins::add_by_type<CallFunctionNodeEditorPlugin>();
+	EditorPlugins::add_by_type<EmitSignalNodeEditorPlugin>();
+}
+
 BehaviourTreeEditor::BehaviourTreeEditor() {
 	m_TreeViewer = memnew(BehaviourTreeViewer);
 	m_TreeViewer->set_h_size_flags(Control::SIZE_EXPAND_FILL);
@@ -44,11 +55,11 @@ void BehaviourTreeEditor::make_visible(bool visible) {
 
 void BehaviourTreeEditor::edit(Object *p_object) {
 	m_TreeViewer->SetAllowEdits(true);
-	m_TreeViewer->StartEditing(Object::cast_to<VBehaviourTreeResource>(p_object));
+	m_TreeViewer->StartEditing(Object::cast_to<VisualBehaviourTree>(p_object));
 }
 
 bool BehaviourTreeEditor::handles(Object *p_object) const {
-	return p_object->is_class("VBehaviourTreeResource");
+	return p_object->is_class("VisualBehaviourTree");
 }
 
 void BehaviourTreeEditor::OnRemoteObjectUpdated(ObjectID p_id) {
@@ -60,7 +71,7 @@ void BehaviourTreeEditor::OnRemoteObjectUpdated(ObjectID p_id) {
 			if (prop.name != "BehaviourTreeRemoteTreeHolder")
 				continue;
 
-			Ref<VBehaviourTreeResource> target_obj = remote_obj->prop_values.get("vbehaviour_tree");
+			Ref<VisualBehaviourTree> target_obj = remote_obj->prop_values.get("vbehaviour_tree");
 
 			if (target_obj.is_valid()) {
 				m_TreeViewer->SetAllowEdits(false);

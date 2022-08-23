@@ -21,21 +21,21 @@ public:
 		ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "remote_states", PROPERTY_HINT_ARRAY_TYPE, "int", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_NO_EDITOR), "set_remote_states", "get_remote_states");
 	}
 
-	void SetVisualTree(Ref<VBehaviourTreeResource> vtree) {
+	void SetVisualTree(Ref<VisualBehaviourTree> vtree) {
 		if (m_Tree.is_valid())
-			m_Tree->GetTree()->disconnect("_on_btree_execute", callable_mp(this, &BehaviourTreeRemoteTreeHolder::SyncStates));
+			m_Tree->disconnect("_on_btree_execute", callable_mp(this, &BehaviourTreeRemoteTreeHolder::SyncStates));
 
 		m_Tree = vtree;
-		m_Tree->GetTree()->connect("_on_btree_execute", callable_mp(this, &BehaviourTreeRemoteTreeHolder::SyncStates));
+		m_Tree->connect("_on_btree_execute", callable_mp(this, &BehaviourTreeRemoteTreeHolder::SyncStates));
 	}
 
-	Ref<VBehaviourTreeResource> GetVisualTree() const {
+	Ref<VisualBehaviourTree> GetVisualTree() const {
 		return m_Tree;
 	}
 
 	void SyncStates() {
 		m_RemoteStates.clear();
-		auto& nodes = m_Tree->GetTree()->GetNodes();
+		auto& nodes = m_Tree->GetNodes();
 		m_RemoteStates.resize(nodes.size());
 		for (int i = 0; i < m_RemoteStates.size(); i++) {
 			m_RemoteStates[i] = nodes[i]->GetState<int>();
@@ -51,7 +51,7 @@ public:
 	}
 
 private:
-	Ref<VBehaviourTreeResource> m_Tree;
+	Ref<VisualBehaviourTree> m_Tree;
 	Array m_RemoteStates;
 };
 } //namespace behaviour_tree

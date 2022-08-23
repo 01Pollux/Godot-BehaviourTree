@@ -30,6 +30,8 @@ void BehaviourTreeCustomActionNode::SerializeNode(Dictionary &out_data) const {
 	List<PropertyInfo> props;
 	get_property_list(&props);
 	for (auto &prop : props) {
+		if (prop.name == "bt_data")
+			continue;
 		if ((prop.usage & (PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_SCRIPT_VARIABLE)) == (PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_SCRIPT_VARIABLE))
 			out_data[prop.name] = get(prop.name);
 	}
@@ -43,6 +45,8 @@ void BehaviourTreeCustomActionNode::DeserializeNode(const Dictionary &in_data) {
 	List<PropertyInfo> props;
 	get_property_list(&props);
 	for (auto &prop : props) {
+		if (prop.name == "bt_data")
+			continue;
 		if ((prop.usage & (PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_SCRIPT_VARIABLE)) == (PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_SCRIPT_VARIABLE) &&
 				in_data.has(prop.name))
 			set(prop.name, in_data[prop.name]);
@@ -95,6 +99,8 @@ void BehaviourTreeCustomCompositeNode::SerializeNode(Dictionary &out_data) const
 	List<PropertyInfo> props;
 	get_property_list(&props);
 	for (auto &prop : props) {
+		if (prop.name == "bt_data")
+			continue;
 		if (prop.usage & PROPERTY_USAGE_SCRIPT_VARIABLE)
 			out_data[prop.name] = get(prop.name);
 	}
@@ -108,6 +114,8 @@ void BehaviourTreeCustomCompositeNode::DeserializeNode(const Dictionary &in_data
 	List<PropertyInfo> props;
 	get_property_list(&props);
 	for (auto &prop : props) {
+		if (prop.name == "bt_data")
+			continue;
 		if (prop.usage & PROPERTY_USAGE_SCRIPT_VARIABLE && in_data.has(prop.name))
 			set(prop.name, in_data[prop.name]);
 	}
@@ -171,6 +179,8 @@ void BehaviourTreeCustomDecoratorNode::SerializeNode(Dictionary &out_data) const
 	List<PropertyInfo> props;
 	get_property_list(&props);
 	for (auto &prop : props) {
+		if (prop.name == "bt_data")
+			continue;
 		if (prop.usage & PROPERTY_USAGE_SCRIPT_VARIABLE)
 			out_data[prop.name] = get(prop.name);
 	}
@@ -184,6 +194,8 @@ void BehaviourTreeCustomDecoratorNode::DeserializeNode(const Dictionary &in_data
 	List<PropertyInfo> props;
 	get_property_list(&props);
 	for (auto &prop : props) {
+		if (prop.name == "bt_data")
+			continue;
 		if (prop.usage & PROPERTY_USAGE_SCRIPT_VARIABLE && in_data.has(prop.name))
 			set(prop.name, in_data[prop.name]);
 	}

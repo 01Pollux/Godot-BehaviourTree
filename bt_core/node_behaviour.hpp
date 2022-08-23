@@ -6,6 +6,7 @@
 #include <vector>
 
 namespace behaviour_tree {
+class BehaviourTree;
 enum class NodeState : char {
 	Inactive = -1,
 	Running,
@@ -49,11 +50,14 @@ public:
 		m_State = NodeState::Inactive;
 	}
 
-	virtual bool GetChildrens(std::vector<IBehaviourTreeNodeBehaviour *> &childrens) = 0;
+	virtual bool GetChildrens(std::vector<IBehaviourTreeNodeBehaviour *> &childrens) const = 0;
 	virtual void Initialize() {}
 
 	virtual void SerializeNode(Dictionary &out_data) const {}
 	virtual void DeserializeNode(const Dictionary &in_data) {}
+
+	Ref<BehaviourTree> GetBehaviourTree() const;
+	void SetBehaviourTree(Ref<BehaviourTree> tree);
 
 protected:
 	virtual void OnEnter() {}
@@ -61,6 +65,11 @@ protected:
 	virtual NodeState OnExecute() = 0;
 
 private:
-	NodeState m_State{ NodeState::Inactive };
+	void SetData(const Dictionary &data);
+	Dictionary GetData() const;
+
+private:
+	NodeState m_State = NodeState::Inactive;
+	Ref<BehaviourTree> m_Tree = nullptr;
 };
 } //namespace behaviour_tree

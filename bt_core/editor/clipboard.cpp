@@ -10,11 +10,10 @@
 
 namespace behaviour_tree::editor {
 static bool GetNodeInfoFromResource(
-		VBehaviourTreeResource *resource,
+		VisualBehaviourTree *resource,
 		const IBehaviourTreeNodeBehaviour *node,
-		VBehaviourTreeResource::VisualNodeInfo &node_info) {
-	BehaviourTree *tree = resource->GetTree().ptr();
-	auto &tree_nodes = tree->GetNodes();
+		VisualBehaviourTree::VisualNodeInfo &node_info) {
+	auto &tree_nodes = resource->GetNodes();
 
 	for (size_t i = 0; i < tree_nodes.size(); i++) {
 		if (*tree_nodes[i] == node) {
@@ -59,14 +58,14 @@ void ClipboardBuffer::DoPaste(bool duplicate) {
 	float scale = m_Viewer->m_Graph->get_zoom();
 	Vector2 mpos = m_Viewer->m_Graph->get_local_mouse_position();
 
-	int cur_id = m_Viewer->m_VisualTreeHolder->GetTree()->GetNodes().size();
+	int cur_id = m_Viewer->m_VisualTreeHolder->GetNodes().size();
 	std::map<IBehaviourTreeNodeBehaviour *, Ref<IBehaviourTreeNodeBehaviour>> added_nodes;
 
 	for (CopyItem &item : m_CopyBuffer) {
-		Ref node = item.Node->duplicate();
+		Ref node = item.Node->duplicate(true);
 		added_nodes[*item.Node] = node;
 
-		VBehaviourTreeResource::VisualNodeInfo node_info;
+		VisualBehaviourTree::VisualNodeInfo node_info;
 		GetNodeInfoFromResource(*m_Viewer->m_VisualTreeHolder, *item.Node, node_info);
 
 		undo_redo->add_do_method(m_Viewer, "_add_node", node, node_info.Position + Vector2(100, -70) * EDSCALE, node_info.Title, node_info.Comment);
@@ -143,7 +142,7 @@ void ClipboardBuffer::DeleteFromBuffer() {
 	}
 
 	for (const CopyItem &item : m_CopyBuffer) {
-		VBehaviourTreeResource::VisualNodeInfo node_info;
+		VisualBehaviourTree::VisualNodeInfo node_info;
 		GetNodeInfoFromResource(*m_Viewer->m_VisualTreeHolder, *item.Node, node_info);
 
 		undo_redo->add_do_method(m_Viewer, "_remove_node", item.Node);

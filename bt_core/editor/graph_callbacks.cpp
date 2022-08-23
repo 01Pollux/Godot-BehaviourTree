@@ -16,7 +16,7 @@ void BehaviourTreeViewer::OnReloadBehaviourTree() {
 		return;
 	}
 	m_UndoRedo->clear_history();
-	Ref<VBehaviourTreeResource> new_tree =
+	Ref<VisualBehaviourTree> new_tree =
 			ResourceLoader::load(
 					ResourceLoader::path_remap(m_VisualTreeHolder->get_path()),
 					m_VisualTreeHolder->get_class(),
@@ -30,16 +30,23 @@ void BehaviourTreeViewer::OnSaveBehaviourTree(bool visual) {
 		return;
 	}
 
-	String path = m_VisualTreeHolder->get_path();
-	if (!visual)
-		path = path.substr(0, path.rfind(".")) + ".btree";
-
 	int flg = 0;
+	Error err = Error::OK;
+
 	if (EditorSettings::get_singleton()->get("filesystem/on_save/compress_binary_resources")) {
 		flg |= ResourceSaver::FLAG_COMPRESS;
 	}
 
-	Error err = ResourceSaver::save(m_VisualTreeHolder, path, flg | ResourceSaver::FLAG_REPLACE_SUBRESOURCE_PATHS);
+	if (!m_SaveButton->is_visible()) {
+		EditorNode::get_singleton()->save_resource_as(m_VisualTreeHolder->GetResources());
+	} else {
+		String path = m_VisualTreeHolder->get_path();
+		if (!visual)
+			path = path.substr(0, path.rfind(".")) + ".btree";
+
+		err = ResourceSaver::save(m_VisualTreeHolder, path, flg | ResourceSaver::FLAG_REPLACE_SUBRESOURCE_PATHS);
+	}
+
 	ERR_FAIL_COND_MSG(err != Error::OK, String("Failed to save behaviour tree (message: ") + error_names[err]);
 }
 
@@ -57,7 +64,7 @@ void BehaviourTreeViewer::OnGuiInput(const Ref<InputEvent> &input_event) {
 		}
 	}
 
-	m_NodeSpawnPosition = m_Graph->get_local_mouse_position();
+	m_NodeSpawnPosition = TransformNodeInGraph(m_Graph->get_local_mouse_position());
 	if (!selecting_nodes && m_Clipboard.IsEmpty()) {
 		DisplayMembersDialog();
 	} else {

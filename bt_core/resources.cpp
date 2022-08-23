@@ -4,7 +4,6 @@
 #include <sstream>
 #include <string>
 
-#include "resources.hpp"
 #include "tree.hpp"
 
 #include "action_node.hpp"
@@ -25,40 +24,21 @@ X							number of nodes										= 2 bytes
 
 	...
 */
-void BehaviourTreeResource::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("set_behaviour_tree", "tree"), &BehaviourTreeResource::SetTree);
-	ClassDB::bind_method(D_METHOD("get_behaviour_tree"), &BehaviourTreeResource::GetTree);
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "behaviour_tree", PROPERTY_HINT_RESOURCE_TYPE, "BehaviourTree", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_EDITOR_INSTANTIATE_OBJECT | PROPERTY_USAGE_NO_EDITOR), "set_behaviour_tree", "get_behaviour_tree");
+struct NodeLoadInfo {
+	Ref<IBehaviourTreeNodeBehaviour> Node;
+	NodeType Type;
+	std::vector<uint16_t> Indices;
+};
 
-	ClassDB::bind_method(D_METHOD("set_always_running", "run_always"), &BehaviourTreeResource::SetAlwaysRunning);
-	ClassDB::bind_method(D_METHOD("get_always_running"), &BehaviourTreeResource::IsAlwaysRunning);
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "is_always_running"), "set_always_running", "get_always_running");
-}
+using NodeLoadInfoContainer = std::vector<NodeLoadInfo>;
 
-void BehaviourTreeResource::register_types() {
-	GDREGISTER_CLASS(BehaviourTreeResource);
+static NodeLoadInfoContainer LoadNodesFromFile(Ref<FileAccess> &file);
+static void SaveNodesToFile(const NodeLoadInfoContainer &loaded_nodes, Ref<FileAccess> &file);
 
-	BTreeResLoader.instantiate();
-	BTreeResSaver.instantiate();
+static void ResolveNodesChildrensFromFile(NodeLoadInfoContainer &nodes);
+static void ResolveNodesIndicesForFile(NodeLoadInfoContainer &nodes);
 
-	ResourceLoader::add_resource_format_loader(BTreeResLoader);
-	ResourceSaver::add_resource_format_saver(BTreeResSaver);
-}
-
-void BehaviourTreeResource::unregister_types() {
-	ResourceLoader::remove_resource_format_loader(BTreeResLoader);
-	ResourceSaver::remove_resource_format_saver(BTreeResSaver);
-
-	BTreeResLoader.unref();
-	BTreeResSaver.unref();
-}
-
-void BehaviourTreeResource::SetTree(Ref<BehaviourTree> res) {
-	m_Tree.unref();
-	m_Tree = res;
-}
-
-Error BehaviourTreeResource::LoadFromFile(const String &path, Ref<FileAccess> file) {
+Error BehaviourTree::LoadFromFile(const String &path, Ref<FileAccess> file) {
 	Error err = Error::OK;
 	if (file.is_null())
 		file = FileAccess::open(path, FileAccess::READ, &err);
@@ -68,29 +48,28 @@ Error BehaviourTreeResource::LoadFromFile(const String &path, Ref<FileAccess> fi
 	}
 	try {
 		bool always_running = file->get_8();
-		size_t root_node_index = file->get_16();
+		uint16_t root_node_index = file->get_16();
 
 		NodeLoadInfoContainer loaded_nodes = LoadNodesFromFile(file);
 		ResolveNodesChildrensFromFile(loaded_nodes);
 
-		if (m_Tree.is_null())
-			m_Tree.instantiate();
-
-		auto &tree_nodes = m_Tree->GetNodes();
-
+		auto &tree_nodes = GetNodes();
 		if (!loaded_nodes.empty()) {
 			if (root_node_index != std::numeric_limits<uint16_t>::max())
-				m_Tree->SetRootNode(loaded_nodes[root_node_index].Node);
+				GDSetRootNodeIndex(root_node_index);
 
 			tree_nodes.reserve(loaded_nodes.size());
 			for (auto &node : loaded_nodes)
 				tree_nodes.emplace_back(node.Node);
 		}
 
-		m_Tree->SetAlwaysRunning(always_running);
-	} catch (const std::exception &ex) {
+		SetAlwaysRunning(always_running);
 #if TOOLS_ENABLED
+	} catch (const std::exception &ex) {
 		ERR_PRINT(ex.what());
+#else
+	} catch (...) {
+
 #endif
 		err = file->get_error();
 	}
@@ -98,23 +77,94 @@ Error BehaviourTreeResource::LoadFromFile(const String &path, Ref<FileAccess> fi
 	return err;
 }
 
-Error BehaviourTreeResource::SaveToFile(const String &path, Ref<FileAccess> file) {
+Error BehaviourTree::SaveToFile(const String &path, Ref<FileAccess> file) {
 	Error err = Error::OK;
 	if (file.is_null())
 		file = FileAccess::open(path, FileAccess::WRITE, &err);
 
 	if (err == Error::OK) {
-		file->store_8(m_Tree->IsAlwaysRunning() ? 1 : 0);
+		file->store_8(IsAlwaysRunning() ? 1 : 0);
 
-		NodeLoadInfoContainer loaded_nodes = TreeToNodesLoadInfo();
+		auto tree_to_nodes_load_info = [this]() -> NodeLoadInfoContainer {
+			NodeLoadInfoContainer loaded_nodes;
+			auto &tree_nodes = GetNodes();
+
+			if (!tree_nodes.empty()) {
+				loaded_nodes.reserve(tree_nodes.size());
+				for (auto &cur_node : tree_nodes) {
+					NodeLoadInfo info{};
+					info.Node = cur_node;
+
+					if (Object::cast_to<IBehaviourTreeDecoratorNode>(*cur_node))
+						info.Type = NodeType::Decorator;
+					else if (Object::cast_to<IBehaviourTreeCompositeNode>(*cur_node))
+						info.Type = NodeType::Composite;
+					else
+						info.Type = NodeType::Action;
+
+					loaded_nodes.emplace_back(std::move(info));
+				}
+			}
+
+			return loaded_nodes;
+		};
+
+		NodeLoadInfoContainer loaded_nodes = tree_to_nodes_load_info();
 		ResolveNodesIndicesForFile(loaded_nodes);
 
-		SaveNodesToFile(loaded_nodes, m_Tree->GetRootNode(), file);
+		file->store_16(static_cast<uint16_t>(GDGetRootNodeIndex()));
+		SaveNodesToFile(loaded_nodes, file);
 	}
 	return err;
 }
 
-auto BehaviourTreeResource::LoadNodesFromFile(Ref<FileAccess> &file) -> NodeLoadInfoContainer {
+Ref<Resource> ResourceFormatLoaderBehaviourTree::load(
+		const String &p_path,
+		const String &p_original_path,
+		Error *r_error,
+		bool p_use_sub_threads,
+		float *r_progress,
+		CacheMode p_cache_mode) {
+	Ref<BehaviourTree> res;
+	res.instantiate();
+
+	if (r_error)
+		*r_error = OK;
+
+	Error err = res->LoadFromFile(p_path);
+	if (r_error)
+		*r_error = err;
+
+	return res;
+}
+
+void ResourceFormatLoaderBehaviourTree::get_recognized_extensions(List<String> *r_extensions) const {
+	r_extensions->push_back("btree");
+}
+
+bool ResourceFormatLoaderBehaviourTree::handles_type(const String &p_type) const {
+	return p_type == "BehaviourTree";
+}
+
+String ResourceFormatLoaderBehaviourTree::get_resource_type(const String &p_path) const {
+	return p_path.get_extension().to_lower() == "btree" ? "BehaviourTree" : "";
+}
+
+Error ResourceFormatSaverBehaviourTree::save(const Ref<Resource> &p_resource, const String &p_path, uint32_t p_flags) {
+	Ref<BehaviourTree> btree = p_resource;
+	return btree->SaveToFile(p_path);
+}
+
+bool ResourceFormatSaverBehaviourTree::recognize(const Ref<Resource> &p_resource) const {
+	return Object::cast_to<BehaviourTree>(*p_resource) != nullptr;
+}
+
+void ResourceFormatSaverBehaviourTree::get_recognized_extensions(const Ref<Resource> &p_resource, List<String> *r_extensions) const {
+	r_extensions->clear();
+	r_extensions->push_back("btree");
+}
+
+NodeLoadInfoContainer LoadNodesFromFile(Ref<FileAccess> &file) {
 	uint16_t number_of_nodes = file->get_16();
 
 	NodeLoadInfoContainer loaded_nodes;
@@ -129,7 +179,7 @@ auto BehaviourTreeResource::LoadNodesFromFile(Ref<FileAccess> &file) -> NodeLoad
 		ERR_CONTINUE_MSG(object == nullptr, "Invalid node name/script");
 
 		Ref<IBehaviourTreeNodeBehaviour> node = Object::cast_to<IBehaviourTreeNodeBehaviour>(object);
-		
+
 		ERR_CONTINUE_MSG(node == nullptr, "Node is not of type IBehaviourTreeNodeBehaviour");
 
 		if (!node_script.is_empty()) {
@@ -179,16 +229,7 @@ auto BehaviourTreeResource::LoadNodesFromFile(Ref<FileAccess> &file) -> NodeLoad
 	return loaded_nodes;
 }
 
-void BehaviourTreeResource::SaveNodesToFile(const NodeLoadInfoContainer &loaded_nodes, IBehaviourTreeNodeBehaviour *root_node, Ref<FileAccess> &file) {
-	uint16_t root_node_index = std::numeric_limits<uint16_t>::max();
-	for (size_t i = 0; i < loaded_nodes.size(); i++) {
-		if (loaded_nodes[i].Node == root_node) {
-			root_node_index = static_cast<uint16_t>(i);
-			break;
-		}
-	}
-
-	file->store_16(root_node_index);
+void SaveNodesToFile(const NodeLoadInfoContainer &loaded_nodes, Ref<FileAccess> &file) {
 	file->store_16(static_cast<uint16_t>(loaded_nodes.size()));
 
 	for (auto &cur_node : loaded_nodes) {
@@ -209,7 +250,7 @@ void BehaviourTreeResource::SaveNodesToFile(const NodeLoadInfoContainer &loaded_
 	}
 }
 
-void BehaviourTreeResource::ResolveNodesChildrensFromFile(NodeLoadInfoContainer &loaded_nodes) {
+void ResolveNodesChildrensFromFile(NodeLoadInfoContainer &loaded_nodes) {
 	for (auto node_info = loaded_nodes.begin(); node_info != loaded_nodes.end(); node_info++) {
 		if (node_info->Indices.empty())
 			continue;
@@ -241,7 +282,7 @@ void BehaviourTreeResource::ResolveNodesChildrensFromFile(NodeLoadInfoContainer 
 	}
 }
 
-void BehaviourTreeResource::ResolveNodesIndicesForFile(NodeLoadInfoContainer &loaded_nodes) {
+void ResolveNodesIndicesForFile(NodeLoadInfoContainer &loaded_nodes) {
 	for (size_t i = 0; i < loaded_nodes.size(); i++) {
 		auto &cur_node = loaded_nodes[i];
 
@@ -265,31 +306,7 @@ void BehaviourTreeResource::ResolveNodesIndicesForFile(NodeLoadInfoContainer &lo
 	}
 }
 
-auto BehaviourTreeResource::TreeToNodesLoadInfo() -> NodeLoadInfoContainer {
-	NodeLoadInfoContainer loaded_nodes;
-	auto &tree_nodes = m_Tree->GetNodes();
-
-	if (!tree_nodes.empty()) {
-		loaded_nodes.reserve(tree_nodes.size());
-		for (auto &cur_node : tree_nodes) {
-			NodeLoadInfo info{};
-			info.Node = cur_node;
-
-			if (Object::cast_to<IBehaviourTreeDecoratorNode>(*cur_node))
-				info.Type = NodeType::Decorator;
-			else if (Object::cast_to<IBehaviourTreeCompositeNode>(*cur_node))
-				info.Type = NodeType::Composite;
-			else
-				info.Type = NodeType::Action;
-
-			loaded_nodes.emplace_back(std::move(info));
-		}
-	}
-
-	return loaded_nodes;
-}
-
-void BehaviourTreeResource::WriteStringToFile(Ref<FileAccess> &file, const String &key) {
+void WriteStringToFile(Ref<FileAccess> &file, const String &key) {
 	if (key.is_empty()) {
 		file->store_32(0);
 		file->store_8(0);
@@ -297,7 +314,7 @@ void BehaviourTreeResource::WriteStringToFile(Ref<FileAccess> &file, const Strin
 		file->store_pascal_string(key);
 }
 
-void BehaviourTreeResource::WriteVariantToFile(Ref<FileAccess> &file, const Variant &var) {
+void WriteVariantToFile(Ref<FileAccess> &file, const Variant &var) {
 	file->store_8(var.get_type());
 	switch (var.get_type()) {
 		case Variant::BOOL:
@@ -524,7 +541,7 @@ void BehaviourTreeResource::WriteVariantToFile(Ref<FileAccess> &file, const Vari
 	}
 }
 
-String BehaviourTreeResource::ReadStringFromFile(Ref<FileAccess> &file) {
+String ReadStringFromFile(Ref<FileAccess> &file) {
 	uint32_t len = file->get_32();
 	String str = "";
 
@@ -541,7 +558,7 @@ String BehaviourTreeResource::ReadStringFromFile(Ref<FileAccess> &file) {
 	return str;
 }
 
-Variant BehaviourTreeResource::ReadVariantFromFile(Ref<FileAccess> &file) {
+Variant ReadVariantFromFile(Ref<FileAccess> &file) {
 	switch (file->get_8()) {
 		case Variant::BOOL:
 			return static_cast<bool>(file->get_8());
@@ -791,51 +808,5 @@ Variant BehaviourTreeResource::ReadVariantFromFile(Ref<FileAccess> &file) {
 			return Variant{};
 		}
 	}
-}
-
-Ref<Resource> ResourceFormatLoaderBehaviourTree::load(
-		const String &p_path,
-		const String &p_original_path,
-		Error *r_error,
-		bool p_use_sub_threads,
-		float *r_progress,
-		CacheMode p_cache_mode) {
-	Ref<BehaviourTreeResource> res;
-	res.instantiate();
-
-	if (r_error)
-		*r_error = OK;
-
-	Error err = res->LoadFromFile(p_path);
-	if (r_error)
-		*r_error = err;
-
-	return res;
-}
-
-void ResourceFormatLoaderBehaviourTree::get_recognized_extensions(List<String> *r_extensions) const {
-	if (!r_extensions->find("btree"))
-		r_extensions->push_back("btree");
-}
-
-bool ResourceFormatLoaderBehaviourTree::handles_type(const String &p_type) const {
-	return p_type == "BehaviourTreeResource";
-}
-
-String ResourceFormatLoaderBehaviourTree::get_resource_type(const String &p_path) const {
-	return p_path.get_extension().to_lower() == "btree" ? "BehaviourTreeResource" : "";
-}
-
-Error ResourceFormatSaverBehaviourTree::save(const Ref<Resource> &p_resource, const String &p_path, uint32_t p_flags) {
-	Ref<BehaviourTreeResource> btree = p_resource;
-	return btree->SaveToFile(p_path);
-}
-
-bool ResourceFormatSaverBehaviourTree::recognize(const Ref<Resource> &p_resource) const {
-	return Object::cast_to<BehaviourTreeResource>(*p_resource) != nullptr;
-}
-
-void ResourceFormatSaverBehaviourTree::get_recognized_extensions(const Ref<Resource> &p_resource, List<String> *r_extensions) const {
-	r_extensions->push_back("btree");
 }
 } //namespace behaviour_tree

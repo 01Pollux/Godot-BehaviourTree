@@ -46,7 +46,7 @@ BehaviourTreeViewer::~BehaviourTreeViewer() {
 	m_UndoRedo->clear_history();
 }
 
-void BehaviourTreeViewer::StartEditing(VBehaviourTreeResource *p_object) {
+void BehaviourTreeViewer::StartEditing(VisualBehaviourTree *p_object) {
 	if (m_VisualTreeHolder.ptr() == p_object || !p_object)
 		return;
 
@@ -58,6 +58,10 @@ void BehaviourTreeViewer::StartEditing(VBehaviourTreeResource *p_object) {
 	UpdateCustomNodesInfo();
 
 	UpdateLayout(-1);
+
+	bool not_unique = p_object->get_scene_unique_id().is_empty();
+	m_SaveButton->set_visible(not_unique);
+	m_ReloadButton->set_visible(not_unique);
 }
 
 void BehaviourTreeViewer::UpdateLayout(int id) {
@@ -80,7 +84,7 @@ void BehaviourTreeViewer::UpdateLayout(int id) {
 		GraphNode *gnode = CreateGraphNode(id);
 		LinkGraphNode(gnode, id, mono_color);
 	} else {
-		auto &tree_nodes = m_VisualTreeHolder->GetTree()->GetNodes();
+		auto &tree_nodes = m_VisualTreeHolder->GetNodes();
 		std::vector<GraphNode *> gnodes;
 		gnodes.reserve(tree_nodes.size());
 
@@ -108,10 +112,10 @@ void BehaviourTreeViewer::_notification(int notification_type) {
 		 tdefault = trunning;
 
 	for (int i = 0; i < RemoteStates.size(); i++) {
-		IBehaviourTreeNodeBehaviour* node = *m_VisualTreeHolder->GetTree()->GetNodes()[i];
+		IBehaviourTreeNodeBehaviour* node = *m_VisualTreeHolder->GetNodes()[i];
 		GraphNode *gnode = m_GraphNodes[node];
 
-		if (node == m_VisualTreeHolder->GetTree()->GetRootNode())
+		if (node == m_VisualTreeHolder->GetRootNode())
 			continue;
 		switch (static_cast<NodeState>(int(RemoteStates[i]))) {
 			case NodeState::Inactive: {
@@ -146,22 +150,22 @@ void BehaviourTreeViewer::InitializeGraph() {
 	menu_container->set_anchor(Side::SIDE_RIGHT, .98f, false);
 
 	// Save button
-	Button *save_tree = memnew(Button);
-	menu_container->add_child(save_tree);
-	save_tree->set_text(TTR("Save"));
-	save_tree->connect("pressed", callable_mp(this, &BehaviourTreeViewer::OnSaveBehaviourTree).bind(true));
+	m_SaveButton = memnew(Button);
+	menu_container->add_child(m_SaveButton);
+	m_SaveButton->set_text(TTR("Save"));
+	m_SaveButton->connect("pressed", callable_mp(this, &BehaviourTreeViewer::OnSaveBehaviourTree).bind(true));
 
 	// Reload button
-	Button *reload_tree = memnew(Button);
-	menu_container->add_child(reload_tree);
-	reload_tree->set_text(TTR("Reload"));
-	reload_tree->connect("pressed", callable_mp(this, &BehaviourTreeViewer::OnReloadBehaviourTree));
+	m_ReloadButton = memnew(Button);
+	menu_container->add_child(m_ReloadButton);
+	m_ReloadButton->set_text(TTR("Reload"));
+	m_ReloadButton->connect("pressed", callable_mp(this, &BehaviourTreeViewer::OnReloadBehaviourTree));
 
 	// Covert to tree
-	Button *compressed_tree = memnew(Button);
-	menu_container->add_child(compressed_tree);
-	compressed_tree->set_text(TTR("Save as Tree"));
-	compressed_tree->connect("pressed", callable_mp(this, &BehaviourTreeViewer::OnSaveBehaviourTree).bind(false));
+	m_ConvertToTreeButton = memnew(Button);
+	menu_container->add_child(m_ConvertToTreeButton);
+	m_ConvertToTreeButton->set_text(TTR("Save as Tree"));
+	m_ConvertToTreeButton->connect("pressed", callable_mp(this, &BehaviourTreeViewer::OnSaveBehaviourTree).bind(false));
 
 	m_Graph = memnew(GraphEdit);
 	m_Graph->add_child(menu_container);
@@ -368,8 +372,17 @@ void BehaviourTreeViewer::Filter_CollectNodes(std::vector<size_t> &options) {
 			});
 }
 
+Vector2 BehaviourTreeViewer::TransformNodeInGraph(Vector2 position) {
+	position = (m_Graph->get_scroll_ofs() + position) / (m_Graph->get_zoom() * EDSCALE);
+	if (m_Graph->is_using_snap()) {
+		int snap = m_Graph->get_snap();
+		position = position.snapped(Vector2(snap, snap));
+	}
+	return position;
+}
+
 GraphNode *BehaviourTreeViewer::FindGraphNode(int node_index) {
-	auto &tree_nodes = m_VisualTreeHolder->GetTree()->GetNodes();
+	auto &tree_nodes = m_VisualTreeHolder->GetNodes();
 	return FindGraphNode(*tree_nodes[node_index]);
 }
 
@@ -379,7 +392,7 @@ GraphNode *BehaviourTreeViewer::FindGraphNode(IBehaviourTreeNodeBehaviour *node)
 }
 
 void BehaviourTreeViewer::RemoveGraphNode(int node_index) {
-	auto &tree_nodes = m_VisualTreeHolder->GetTree()->GetNodes();
+	auto &tree_nodes = m_VisualTreeHolder->GetNodes();
 	auto iter = m_GraphNodes.find(*tree_nodes[node_index]);
 	if (iter != m_GraphNodes.end()) {
 		memdelete(iter->second);

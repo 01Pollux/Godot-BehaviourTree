@@ -11,11 +11,10 @@
 
 namespace behaviour_tree::editor {
 static bool GetNodeInfoFromResource(
-		VBehaviourTreeResource *resource,
+		VisualBehaviourTree *resource,
 		const IBehaviourTreeNodeBehaviour *node,
-		VBehaviourTreeResource::VisualNodeInfo &node_info) {
-	BehaviourTree *tree = resource->GetTree().ptr();
-	auto &tree_nodes = tree->GetNodes();
+		VisualBehaviourTree::VisualNodeInfo &node_info) {
+	auto &tree_nodes = resource->GetNodes();
 
 	for (size_t i = 0; i < tree_nodes.size(); i++) {
 		if (*tree_nodes[i] == node) {
@@ -29,13 +28,13 @@ static bool GetNodeInfoFromResource(
 void BehaviourTreeViewer::AddNodeByIndex(int node_index) {
 	const auto &load_info = GetRegisteredNodeInfo(node_index);
 
-	size_t last_id = m_VisualTreeHolder->GetTree()->GetNodes().size();
+	size_t last_id = m_VisualTreeHolder->GetNodes().size();
 
 	Ref<IBehaviourTreeNodeBehaviour> node;
 	if (load_info.Script.is_null())
-		node = m_VisualTreeHolder->GetTree()->GDCreateNode(load_info.Type);
+		node = m_VisualTreeHolder->GDCreateNode(load_info.Type);
 	else {
-		node = m_VisualTreeHolder->GetTree()->GDCreateNode(load_info.Script->get_instance_base_type());
+		node = m_VisualTreeHolder->GDCreateNode(load_info.Script->get_instance_base_type());
 		node->set_script(load_info.Script);
 	}
 
@@ -51,13 +50,13 @@ void BehaviourTreeViewer::AddNodeByIndex(int node_index) {
 }
 
 void BehaviourTreeViewer::RemoveNodeByIndex(int node_index) {
-	m_VisualTreeHolder->GetTree()->GDRemoveNodeByIndex(node_index);
+	m_VisualTreeHolder->GDRemoveNodeByIndex(node_index);
 	m_VisualTreeHolder->RemoveNodeInfo(node_index);
 	RemoveGraphNode(node_index);
 }
 
 void BehaviourTreeViewer::AddNode(Ref<IBehaviourTreeNodeBehaviour> node, Vector2 position, const String &title, const String &comment) {
-	auto &tree_nodes = m_VisualTreeHolder->GetTree()->GetNodes();
+	auto &tree_nodes = m_VisualTreeHolder->GetNodes();
 	int last_node_id = tree_nodes.size();
 
 	tree_nodes.push_back(node);
@@ -71,11 +70,11 @@ void BehaviourTreeViewer::AddNode(Ref<IBehaviourTreeNodeBehaviour> node, Vector2
 }
 
 void BehaviourTreeViewer::RemoveNode(Ref<IBehaviourTreeNodeBehaviour> node) {
-	auto &tree_nodes = m_VisualTreeHolder->GetTree()->GetNodes();
+	auto &tree_nodes = m_VisualTreeHolder->GetNodes();
 
 	for (size_t i = 0; i < tree_nodes.size(); i++) {
 		if (*tree_nodes[i] == *node) {
-			m_VisualTreeHolder->GetTree()->GDRemoveNodeByIndex(i);
+			m_VisualTreeHolder->GDRemoveNodeByIndex(i);
 			m_VisualTreeHolder->RemoveNodeInfo(i);
 			break;
 		}
@@ -93,7 +92,7 @@ void BehaviourTreeViewer::SetNodeComment(int node_index, const String &comment) 
 }
 
 GraphNode *BehaviourTreeViewer::CreateGraphNode(int node_index) {
-	BehaviourTree *tree = m_VisualTreeHolder->GetTree().ptr();
+	BehaviourTree *tree = m_VisualTreeHolder.ptr();
 	auto &tree_nodes = tree->GetNodes();
 
 	IBehaviourTreeNodeBehaviour *tree_node = tree_nodes[node_index].ptr();
@@ -116,17 +115,13 @@ GraphNode *BehaviourTreeViewer::CreateGraphNode(int node_index) {
 	gnode->set_custom_minimum_size(Size2(195 * EDSCALE, 100 * EDSCALE));
 	gnode->connect("dragged", callable_mp(this, &BehaviourTreeViewer::OnNodeDrag).bind(node_index));
 
-	VBoxContainer *container = memnew(VBoxContainer);
-	gnode->add_child(container);
-	container->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-
 	Button *set_root = memnew(Button);
 	set_root->set_text(TTR("Set root"));
-	container->add_child(set_root);
+	gnode->add_child(set_root);
 	set_root->connect("pressed", callable_mp(this, &BehaviourTreeViewer::SetAsRoot).bind(node_index));
 
 	TextEdit *description = memnew(TextEdit);
-	container->add_child(description);
+	gnode->add_child(description);
 	description->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	description->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	description->set_text(node_info.Comment);
@@ -140,7 +135,7 @@ GraphNode *BehaviourTreeViewer::CreateGraphNode(int node_index) {
 }
 
 void BehaviourTreeViewer::LinkGraphNode(GraphNode *gnode, int node_index, const Color &port_color) {
-	BehaviourTree *tree = m_VisualTreeHolder->GetTree().ptr();
+	BehaviourTree *tree = m_VisualTreeHolder.ptr();
 	auto &tree_nodes = tree->GetNodes();
 	IBehaviourTreeNodeBehaviour *tree_node = tree_nodes[node_index].ptr();
 
@@ -215,7 +210,7 @@ void BehaviourTreeViewer::OnNodeDrag(const Vector2 &p_from, const Vector2 &p_to,
 }
 
 void BehaviourTreeViewer::Deffered_OnNodeDrag() {
-	auto &tree_nodes = m_VisualTreeHolder->GetTree()->GetNodes();
+	auto &tree_nodes = m_VisualTreeHolder->GetNodes();
 
 	m_UndoRedo->create_action("Node(s) moved");
 	for (auto &[p_from, p_to, node_index] : m_PendingDragNodes) {
@@ -239,10 +234,10 @@ void BehaviourTreeViewer::SetNodePosition(int node_index, const Vector2 &positio
 	auto &node_info = m_VisualTreeHolder->GetNodeInfo(node_index);
 	node_info.Position = position;
 
-	auto &tree_nodes = m_VisualTreeHolder->GetTree()->GetNodes();
+	auto &tree_nodes = m_VisualTreeHolder->GetNodes();
 
 	IBehaviourTreeNodeBehaviour *tree_node = *tree_nodes[node_index];
-	Ref<IBehaviourTreeCompositeNode> composite = *m_VisualTreeHolder->GetTree()->GetParentOfNode(tree_node);
+	Ref<IBehaviourTreeCompositeNode> composite = *m_VisualTreeHolder->GetParentOfNode(tree_node);
 	if (composite.is_null())
 		return;
 
@@ -284,7 +279,7 @@ void BehaviourTreeViewer::SetNodePosition(int node_index, const Vector2 &positio
 }
 
 void BehaviourTreeViewer::SetAsRoot(int node_index) {
-	BehaviourTree *tree = m_VisualTreeHolder->GetTree().ptr();
+	BehaviourTree *tree = m_VisualTreeHolder.ptr();
 	auto &tree_nodes = tree->GetNodes();
 
 	Ref<IBehaviourTreeNodeBehaviour> new_root = tree->GetNodes()[node_index];
@@ -325,7 +320,7 @@ void BehaviourTreeViewer::OnNodeConnect(const String &from, int, const String &t
 		return;
 	}
 
-	BehaviourTree *tree = m_VisualTreeHolder->GetTree().ptr();
+	BehaviourTree *tree = m_VisualTreeHolder.ptr();
 	auto &tree_nodes = tree->GetNodes();
 
 	m_UndoRedo->create_action("Connect Node");
@@ -363,7 +358,7 @@ void BehaviourTreeViewer::OnNodeDisconnect(const String &from, int, const String
 		return;
 	}
 
-	BehaviourTree *tree = m_VisualTreeHolder->GetTree().ptr();
+	BehaviourTree *tree = m_VisualTreeHolder.ptr();
 	auto &tree_nodes = tree->GetNodes();
 
 	m_UndoRedo->create_action("Disconnect Node");
@@ -396,7 +391,7 @@ void BehaviourTreeViewer::OnNodeConnectToEmpty(const String &from, int, const Ve
 
 	m_PendingLinkFromNode = from;
 	DisplayMembersDialog();
-	m_NodeSpawnPosition = position;
+	m_NodeSpawnPosition = TransformNodeInGraph(position);
 }
 
 void BehaviourTreeViewer::OnNodeConnectFromEmpty(const String &to, int, const Vector2 &position) {
@@ -407,7 +402,7 @@ void BehaviourTreeViewer::OnNodeConnectFromEmpty(const String &to, int, const Ve
 
 	m_PendingLinkToNode = to;
 	DisplayMembersDialog();
-	m_NodeSpawnPosition = position;
+	m_NodeSpawnPosition = TransformNodeInGraph(position);
 }
 
 bool BehaviourTreeViewer::CheckPendingLinkFromNode(IBehaviourTreeNodeBehaviour *to_node) {
@@ -443,7 +438,7 @@ void BehaviourTreeViewer::OnDeleteNodesRequest(const TypedArray<StringName> &p_n
 				to_erase.push_back(node_gnode.first);
 		}
 	} else {
-		auto &tree_nodes = m_VisualTreeHolder->GetTree()->GetNodes();
+		auto &tree_nodes = m_VisualTreeHolder->GetNodes();
 		for (int i = 0; i < p_nodes.size(); i++) {
 			IBehaviourTreeNodeBehaviour *node = Object::cast_to<IBehaviourTreeNodeBehaviour>(m_Graph->get_node(p_nodes[i])->get_meta("_node"));
 			to_erase.push_back(node);
@@ -464,13 +459,13 @@ void BehaviourTreeViewer::DeleteNodes(const std::vector<IBehaviourTreeNodeBehavi
 
 	for (IBehaviourTreeNodeBehaviour *node : to_erase_nodes) {
 		Ref ref_node = node;
-		VBehaviourTreeResource::VisualNodeInfo node_info;
+		VisualBehaviourTree::VisualNodeInfo node_info;
 		GetNodeInfoFromResource(*m_VisualTreeHolder, node, node_info);
 
 		m_UndoRedo->add_do_method(this, "_remove_node", ref_node);
 		m_UndoRedo->add_undo_method(this, "_add_node", ref_node, node_info.Position, node_info.Title, node_info.Comment);
 
-		Ref parent_node = m_VisualTreeHolder->GetTree()->GetParentOfNode(*ref_node);
+		Ref parent_node = m_VisualTreeHolder->GetParentOfNode(*ref_node);
 		if (parent_node.is_valid()) {
 			if (IBehaviourTreeCompositeNode *composite = Object::cast_to<IBehaviourTreeCompositeNode>(*parent_node))
 				m_UndoRedo->add_undo_method(composite, "add_btchild", ref_node);

@@ -4,24 +4,39 @@
 
 namespace behaviour_tree::nodes {
 void BehaviourTreeCallFunctionNode::Initialize() {
-	m_Tree = get_meta("behaviour_tree");
-	if (m_Tree.is_valid())
-		m_TargetObject = ObjectDB::get_instance(m_Tree->get_meta("bt_node_object"));
+	Node *holder = Object::cast_to<Node>(GetBehaviourTree()->get_meta("bt_target_node"));
+	if (holder && !m_TargetPath.is_empty())
+		m_TargetNode = holder->get_node(m_TargetPath);
+	else
+		m_TargetNode = holder;
 }
 
 NodeState BehaviourTreeCallFunctionNode::OnExecute() {
-	m_TmpArgs.clear();
-	m_TmpArgs.reserve(m_Args.size());
+	std::vector<const Variant *> args;
+	args.reserve(m_Args.size());
 
 	for (size_t i = 0; i < m_Args.size(); i++)
-		m_TmpArgs.emplace_back(&m_Args[i]);
+		args.emplace_back(&m_Args[i]);
 
 	if (m_IsDeffered) {
-		MessageQueue::get_singleton()->push_callp(m_TargetObject, m_FunctionName, m_TmpArgs.data(), m_Args.size());
+		MessageQueue::get_singleton()->push_callp(m_TargetNode, m_FunctionName, args.data(), m_Args.size());
 	} else {
-		Callable::CallError err{};
-		Variant ret = m_TargetObject->callp(m_FunctionName, m_TmpArgs.data(), m_Args.size(), err);
-		m_Tree->set_meta("bt_last_return", ret);
+		if (!m_IsRPC) {
+			Callable::CallError err{};
+			Variant ret = m_TargetNode->callp(m_FunctionName, args.data(), m_Args.size(), err);
+			if (!m_ReturnValueName.is_empty())
+				GetBehaviourTree()->SetBlackboard(m_ReturnValueName, ret);
+
+			if (err.error != Callable::CallError::CALL_OK) {
+#if TOOLS_ENABLED
+				ERR_FAIL_V_MSG(NodeState::Failure, "Failed to call function " + m_FunctionName + " of node " + m_TargetNode->get_path());
+#else
+				return NodeState::Failure;
+#endif
+			}
+		} else {
+			m_TargetNode->rpcp(m_Args[0], m_FunctionName, args.data() + 1, args.size() - 1);
+		}
 	}
 
 	return NodeState::Success;

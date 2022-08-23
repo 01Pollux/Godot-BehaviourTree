@@ -10,15 +10,15 @@ public:
 	static void _bind_methods() {
 		ClassDB::bind_method(D_METHOD("set_success", "node_state"), &BehaviourTreeConverterNode::SetStateI<NodeState::Success>);
 		ClassDB::bind_method(D_METHOD("get_success"), &BehaviourTreeConverterNode::GetStateI<NodeState::Success>);
-		ADD_PROPERTY(PropertyInfo(Variant::INT, "success_state", PROPERTY_HINT_ENUM, "running,success,failure"), "set_success", "get_success");
+		ADD_PROPERTY(PropertyInfo(Variant::INT, "success_state", PROPERTY_HINT_ENUM, "running,success,failure", PROPERTY_USAGE_STORAGE), "set_success", "get_success");
 
 		ClassDB::bind_method(D_METHOD("set_running", "node_state"), &BehaviourTreeConverterNode::SetStateI<NodeState::Running>);
 		ClassDB::bind_method(D_METHOD("get_running"), &BehaviourTreeConverterNode::GetStateI<NodeState::Running>);
-		ADD_PROPERTY(PropertyInfo(Variant::INT, "running_state", PROPERTY_HINT_ENUM, "running,success,failure"), "set_running", "get_running");
+		ADD_PROPERTY(PropertyInfo(Variant::INT, "running_state", PROPERTY_HINT_ENUM, "running,success,failure", PROPERTY_USAGE_STORAGE), "set_running", "get_running");
 
 		ClassDB::bind_method(D_METHOD("set_failure", "node_state"), &BehaviourTreeConverterNode::SetStateI<NodeState::Failure>);
 		ClassDB::bind_method(D_METHOD("get_failure"), &BehaviourTreeConverterNode::GetStateI<NodeState::Failure>);
-		ADD_PROPERTY(PropertyInfo(Variant::INT, "failure_state", PROPERTY_HINT_ENUM, "running,success,failure"), "set_failure", "get_failure");
+		ADD_PROPERTY(PropertyInfo(Variant::INT, "failure_state", PROPERTY_HINT_ENUM, "running,success,failure", PROPERTY_USAGE_STORAGE), "set_failure", "get_failure");
 	}
 
 	void SerializeNode(Dictionary &out_data) const override {

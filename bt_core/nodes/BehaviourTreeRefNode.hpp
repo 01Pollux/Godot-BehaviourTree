@@ -1,11 +1,7 @@
 #pragma once
 
 #include "../action_node.hpp"
-#include "../resources.hpp"
-
-namespace behaviour_tree {
-class BehaviourTreeResource;
-}
+#include "../tree.hpp"
 
 namespace behaviour_tree::nodes {
 class BehaviourTreeRefNode : public IBehaviourTreeActionNode {
@@ -13,18 +9,21 @@ class BehaviourTreeRefNode : public IBehaviourTreeActionNode {
 
 public:
 	static void _bind_methods() {
-		ClassDB::bind_method(D_METHOD("_set_tree", "tree"), &BehaviourTreeRefNode::SetTree);
-		ClassDB::bind_method(D_METHOD("_get_tree"), &BehaviourTreeRefNode::GetTree);
-		ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "behaviour_tree", PROPERTY_HINT_RESOURCE_TYPE, "BehaviourTreeResource", PROPERTY_USAGE_NO_EDITOR), "_set_tree", "_get_tree");
+		ClassDB::bind_method(D_METHOD("_set_btree", "tree"), &BehaviourTreeRefNode::SetTree);
+		ClassDB::bind_method(D_METHOD("_get_btree"), &BehaviourTreeRefNode::GetTree);
+		ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "behaviour_tree", PROPERTY_HINT_RESOURCE_TYPE, "BehaviourTree", PROPERTY_USAGE_NO_EDITOR | PROPERTY_USAGE_STORAGE), "_set_btree", "_get_btree");
 	}
 
 	void SerializeNode(Dictionary &out_data) const override {
 		IBehaviourTreeActionNode::SerializeNode(out_data);
-		out_data["behaviour_tree"] = m_Tree->get_path();
+		out_data["behaviour_tree"] = m_Tree.is_valid() ? m_Tree->get_path() : "<null>";
 	}
 
 	void DeserializeNode(const Dictionary &in_data) {
-		m_Tree = ResourceLoader::load(in_data["behaviour_tree"], "BehaviourTreeResource");
+		String path = in_data["behaviour_tree"];
+		if (path != "<null>")
+			m_Tree = ResourceLoader::load(in_data["behaviour_tree"], "BehaviourTree");
+
 		IBehaviourTreeActionNode::DeserializeNode(in_data);
 	}
 
@@ -36,15 +35,15 @@ protected:
 	NodeState OnExecute() override;
 
 private:
-	void SetTree(const Ref<BehaviourTreeResource> &tree) {
+	void SetTree(const Ref<BehaviourTree> &tree) {
 		m_Tree = tree;
 	}
 
-	Ref<BehaviourTreeResource> GetTree() {
+	Ref<BehaviourTree> GetTree() {
 		return m_Tree;
 	}
 
 private:
-	Ref<BehaviourTreeResource> m_Tree;
+	Ref<BehaviourTree> m_Tree;
 };
 } //namespace behaviour_tree::nodes

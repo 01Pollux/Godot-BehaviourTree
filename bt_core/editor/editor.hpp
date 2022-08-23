@@ -1,19 +1,15 @@
 #pragma once
 
 #if TOOLS_ENABLED
-
 #include <deque>
 #include <map>
-#include <vector>
 
 #include "clipboard.hpp"
 #include "editor/create_dialog.h"
 #include "editor/plugins/script_editor_plugin.h"
 
 namespace behaviour_tree {
-class BehaviourTreeResource;
-class VBehaviourTreeResource;
-enum class NodeType;
+class VisualBehaviourTree;
 } //namespace behaviour_tree
 
 namespace behaviour_tree::editor {
@@ -65,8 +61,8 @@ public:
 	}
 	Array RemoteStates;
 
-	void StartEditing(VBehaviourTreeResource *p_object);
-	VBehaviourTreeResource* GetEditedObject() {
+	void StartEditing(VisualBehaviourTree *p_object);
+	VisualBehaviourTree *GetEditedObject() {
 		return *m_VisualTreeHolder;
 	}
 
@@ -139,6 +135,7 @@ private:
 
 private:
 	void Filter_CollectNodes(std::vector<size_t> &options);
+	Vector2 TransformNodeInGraph(Vector2 position);
 
 	GraphNode *FindGraphNode(int node_index);
 	GraphNode *FindGraphNode(IBehaviourTreeNodeBehaviour *node);
@@ -150,9 +147,11 @@ private:
 	}
 
 private:
-	Ref<VBehaviourTreeResource> m_VisualTreeHolder{};
+	Ref<VisualBehaviourTree> m_VisualTreeHolder{};
 	std::map<std::string, Ref<Theme>> m_Themes;
 	bool m_AllowEdits{};
+
+	Button *m_SaveButton{}, *m_ReloadButton{}, *m_ConvertToTreeButton{};
 
 	UndoRedo *m_UndoRedo{};
 	GraphEdit *m_Graph{};
@@ -180,12 +179,13 @@ class BehaviourTreeEditor : public EditorPlugin {
 	GDCLASS(BehaviourTreeEditor, EditorPlugin);
 
 public:
+	static void register_types();
+
 	BehaviourTreeEditor();
 	~BehaviourTreeEditor();
 
 public:
 	String get_name() const override { return "Behaviour Tree"; }
-	//bool has_main_screen() const override;
 	void make_visible(bool visible) override;
 	void edit(Object *p_object) override;
 	bool handles(Object *p_object) const override;

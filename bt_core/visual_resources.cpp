@@ -22,16 +22,24 @@ namespace behaviour_tree {
 	...
 */
 
-void VBehaviourTreeResource::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("_set_custom_nodes_data_path", "data_path"), &VBehaviourTreeResource::SetNodesDataPath);
-	ClassDB::bind_method(D_METHOD("_get_custom_nodes_data_path"), &VBehaviourTreeResource::GetNodesDataPath);
-	ADD_PROPERTY(PropertyInfo(Variant::STRING, "custom_nodes_data_path", PROPERTY_HINT_FILE, "*.json"), "_set_custom_nodes_data_path", "_get_custom_nodes_data_path");
+void VisualBehaviourTree::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("_set_custom_nodes_data_path", "data_path"), &VisualBehaviourTree::GDSetNodesDataPath);
+	ClassDB::bind_method(D_METHOD("_get_custom_nodes_data_path"), &VisualBehaviourTree::GDGetNodesDataPath);
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "custom_nodes_data_path", PROPERTY_HINT_FILE, "*.json", PROPERTY_USAGE_EDITOR), "_set_custom_nodes_data_path", "_get_custom_nodes_data_path");
+
+	ClassDB::bind_method(D_METHOD("_set_custom_nodes_descriptor", "descriptor"), &VisualBehaviourTree::GDSetNodesDescriptor);
+	ClassDB::bind_method(D_METHOD("_get_custom_nodes_descriptor"), &VisualBehaviourTree::GDGetNodesDescriptor);
+	ADD_PROPERTY(PropertyInfo(Variant::DICTIONARY, "custom_nodes_descriptor", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_STORAGE), "_set_custom_nodes_descriptor", "_get_custom_nodes_descriptor");
+	
+	ClassDB::bind_method(D_METHOD("_set_nodes_info", "nodes"), &VisualBehaviourTree::GDSetNodesInfo);
+	ClassDB::bind_method(D_METHOD("_get_nodes_info"), &VisualBehaviourTree::GDGetNodesInfo);
+	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "bt_nodes_info", PROPERTY_HINT_ARRAY_TYPE, "", PROPERTY_USAGE_STORAGE), "_set_nodes_info", "_get_nodes_info");
 
 	ADD_SIGNAL(MethodInfo("_on_custom_nodes_path_changed"));
 }
 
-void VBehaviourTreeResource::register_types() {
-	GDREGISTER_CLASS(VBehaviourTreeResource);
+void VisualBehaviourTree::register_types() {
+	GDREGISTER_CLASS(VisualBehaviourTree);
 
 	VBTreeResLoader.instantiate();
 	VBTreeResSaver.instantiate();
@@ -40,7 +48,7 @@ void VBehaviourTreeResource::register_types() {
 	ResourceSaver::add_resource_format_saver(VBTreeResSaver);
 }
 
-void VBehaviourTreeResource::unregister_types() {
+void VisualBehaviourTree::unregister_types() {
 	ResourceLoader::remove_resource_format_loader(VBTreeResLoader);
 	ResourceSaver::remove_resource_format_saver(VBTreeResSaver);
 
@@ -48,7 +56,7 @@ void VBehaviourTreeResource::unregister_types() {
 	VBTreeResSaver.unref();
 }
 
-Error VBehaviourTreeResource::VLoadFromFile(const String &path) {
+Error VisualBehaviourTree::VLoadFromFile(const String &path) {
 	Error err = Error::OK;
 	Ref<FileAccess> file = FileAccess::open(path, FileAccess::READ, &err);
 
@@ -58,9 +66,9 @@ Error VBehaviourTreeResource::VLoadFromFile(const String &path) {
 #endif
 
 	if (err == Error::OK) {
-		SetNodesDataPath(ReadStringFromFile(file));
+		GDSetNodesDataPath(ReadStringFromFile(file));
 
-		size_t size = GetTree()->GetNodes().size();
+		size_t size = GetNodes().size();
 		m_NodesInfo.reserve(size);
 
 		for (size_t i = 0; i < size; i++) {
@@ -75,7 +83,7 @@ Error VBehaviourTreeResource::VLoadFromFile(const String &path) {
 	return err;
 }
 
-Error VBehaviourTreeResource::VSaveToFile(const String &path) {
+Error VisualBehaviourTree::VSaveToFile(const String &path) {
 	Error err = Error::OK;
 	Ref<FileAccess> file = FileAccess::open(path, FileAccess::WRITE, &err);
 
@@ -87,9 +95,9 @@ Error VBehaviourTreeResource::VSaveToFile(const String &path) {
 
 	if (path.ends_with(".vbtree")) {
 		if (err == Error::OK) {
-			WriteStringToFile(file, GetNodesDataPath());
+			WriteStringToFile(file, GDGetNodesDataPath());
 #if TOOLS_ENABLED
-			ERR_FAIL_COND_V(GetTree()->GetNodes().size() != m_NodesInfo.size(), Error::ERR_FILE_CORRUPT);
+			ERR_FAIL_COND_V(GetNodes().size() != m_NodesInfo.size(), Error::ERR_FILE_CORRUPT);
 #endif
 
 			for (auto &node_info : m_NodesInfo) {
@@ -104,7 +112,7 @@ Error VBehaviourTreeResource::VSaveToFile(const String &path) {
 	return err;
 }
 
-void VBehaviourTreeResource::SetNodesDataPath(const String &file_path) {
+void VisualBehaviourTree::GDSetNodesDataPath(const String &file_path) {
 	if (!file_path.is_empty()) {
 		if (m_CustomNodesDescriptor.has("_path") && m_CustomNodesDescriptor["_path"] == file_path)
 			return;
@@ -124,9 +132,10 @@ void VBehaviourTreeResource::SetNodesDataPath(const String &file_path) {
 	}
 }
 
-String VBehaviourTreeResource::GetNodesDataPath() const {
+String VisualBehaviourTree::GDGetNodesDataPath() const {
 	return m_CustomNodesDescriptor.has("_path") ? m_CustomNodesDescriptor["_path"] : "";
 }
+
 
 Ref<Resource> ResourceFormatLoaderVBehaviourTree::load(
 		const String &p_path,
@@ -135,7 +144,7 @@ Ref<Resource> ResourceFormatLoaderVBehaviourTree::load(
 		bool p_use_sub_threads,
 		float *r_progress,
 		CacheMode p_cache_mode) {
-	Ref<VBehaviourTreeResource> res;
+	Ref<VisualBehaviourTree> res;
 	res.instantiate();
 
 	if (r_error)
@@ -149,29 +158,31 @@ Ref<Resource> ResourceFormatLoaderVBehaviourTree::load(
 }
 
 void ResourceFormatLoaderVBehaviourTree::get_recognized_extensions(List<String> *r_extensions) const {
-	if (!r_extensions->find("vbtree"))
-		r_extensions->push_back("vbtree");
+	r_extensions->push_back("vbtree");
 }
 
 bool ResourceFormatLoaderVBehaviourTree::handles_type(const String &p_type) const {
-	return p_type == "VBehaviourTreeResource";
+	return p_type == "VisualBehaviourTree";
 }
 
 String ResourceFormatLoaderVBehaviourTree::get_resource_type(const String &p_path) const {
-	return p_path.get_extension().to_lower() == "vbtree" ? "VBehaviourTreeResource" : "";
+	return p_path.get_extension().to_lower() == "vbtree" ? "VisualBehaviourTree" : "";
 }
 
+
 Error ResourceFormatSaverVBehaviourTree::save(const Ref<Resource> &p_resource, const String &p_path, uint32_t p_flags) {
-	Ref<VBehaviourTreeResource> btree = p_resource;
+	Ref<VisualBehaviourTree> btree = p_resource;
 	return btree->VSaveToFile(p_path);
 }
 
 bool ResourceFormatSaverVBehaviourTree::recognize(const Ref<Resource> &p_resource) const {
-	return Object::cast_to<VBehaviourTreeResource>(*p_resource) != nullptr;
+	return Object::cast_to<VisualBehaviourTree>(*p_resource) != nullptr;
 }
 
 void ResourceFormatSaverVBehaviourTree::get_recognized_extensions(const Ref<Resource> &p_resource, List<String> *r_extensions) const {
+	r_extensions->clear();
 	r_extensions->push_back("vbtree");
+	r_extensions->push_back("btree");
 }
 } //namespace behaviour_tree
 #endif

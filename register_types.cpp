@@ -45,12 +45,11 @@ void initialize_behaviour_tree_module(ModuleInitializationLevel p_level) {
 	using namespace behaviour_tree;
 	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE) {
 		BehaviourTree::register_types();
-		BehaviourTreeResource::register_types();
 #if TOOLS_ENABLED
-		VBehaviourTreeResource::register_types();
+		VisualBehaviourTree::register_types();
 		GDREGISTER_CLASS(BehaviourTreeRemoteTreeHolder);
 	} else if (p_level == MODULE_INITIALIZATION_LEVEL_EDITOR) {
-		EditorPlugins::add_by_type<editor::BehaviourTreeEditor>();
+		editor::BehaviourTreeEditor::register_types();
 #endif // TOOLS_ENABLED
 	}
 }
@@ -58,9 +57,9 @@ void initialize_behaviour_tree_module(ModuleInitializationLevel p_level) {
 void uninitialize_behaviour_tree_module(ModuleInitializationLevel p_level) {
 	using namespace behaviour_tree;
 	if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE) {
-		BehaviourTreeResource::unregister_types();
+		BehaviourTree::unregister_types();
 #if TOOLS_ENABLED
-		VBehaviourTreeResource::unregister_types();
+		VisualBehaviourTree::unregister_types();
 #endif
 	}
 }

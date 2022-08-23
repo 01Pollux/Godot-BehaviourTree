@@ -1,8 +1,6 @@
 #pragma once
 
-#include "resources.hpp"
 #include "tree.hpp"
-
 #include <vector>
 
 #if TOOLS_ENABLED
@@ -10,8 +8,8 @@ namespace behaviour_tree {
 class ResourceFormatLoaderVBehaviourTree;
 class ResourceFormatSaverVBehaviourTree;
 
-class VBehaviourTreeResource : public BehaviourTreeResource {
-	GDCLASS(VBehaviourTreeResource, BehaviourTreeResource);
+class VisualBehaviourTree : public BehaviourTree {
+	GDCLASS(VisualBehaviourTree, BehaviourTree);
 
 public:
 	static void _bind_methods();
@@ -52,9 +50,67 @@ public:
 		m_NodesInfo.erase(m_NodesInfo.begin() + node_index);
 	}
 
+	Ref<BehaviourTree> GetResources() {
+		Ref<BehaviourTree> copy;
+		copy.instantiate();
+
+		this->reset_state();
+		List<PropertyInfo> pi;
+		this->get_property_list(&pi);
+
+		for (const PropertyInfo &E : pi) {
+			if (!(E.usage & PROPERTY_USAGE_STORAGE)) {
+				continue;
+			}
+			if (E.name == "resource_path") {
+				continue; //do not change path
+			}
+
+			copy->set(E.name, this->get(E.name));
+		}
+		return copy;
+	}
+
 private:
-	void SetNodesDataPath(const String &file_path);
-	String GetNodesDataPath() const;
+	void GDSetNodesDataPath(const String &file_path);
+	String GDGetNodesDataPath() const;
+
+	void GDSetNodesDescriptor(const Dictionary &data) {
+		m_CustomNodesDescriptor = data;
+	}
+	Dictionary GDGetNodesDescriptor() const {
+		return m_CustomNodesDescriptor;
+	}
+	
+	void GDSetNodesInfo(const Array &data) {
+		m_NodesInfo.clear();
+		m_NodesInfo.reserve(data.size());
+		for (int i = 0; i < data.size(); i++) {
+			Dictionary dict = data[i];
+
+			auto& info = m_NodesInfo.emplace_back();
+			info.Position = dict["position"];
+			info.Title = dict["title"];
+			info.Comment = dict["comment"];
+		}
+	}
+	Array GDGetNodesInfo() const {
+		Array data;
+		data.resize(m_NodesInfo.size());
+		for (int i = 0; i < data.size(); i++) {
+			Dictionary dict;
+
+			auto &info = m_NodesInfo[i];
+			dict["position"] = info.Position;
+			dict["title"] = info.Title;
+			dict["comment"] = info.Comment;
+
+			data[i] = dict;
+		}
+		return data;
+	}
+	
+	NodePath m_TmpPath;
 
 private:
 	std::vector<VisualNodeInfo> m_NodesInfo;

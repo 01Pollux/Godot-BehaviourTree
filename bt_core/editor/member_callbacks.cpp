@@ -62,7 +62,7 @@ void BehaviourTreeViewer::OnNodeMemberCreate() {
 		m_UndoRedo->create_action("Add Node");
 
 		m_UndoRedo->add_do_method(this, "_add_node_idx", node_index);
-		size_t last_id = m_VisualTreeHolder->GetTree()->GetNodes().size();
+		size_t last_id = m_VisualTreeHolder->GetNodes().size();
 		m_UndoRedo->add_undo_method(this, "_remove_node_idx", last_id);
 
 		m_UndoRedo->commit_action();

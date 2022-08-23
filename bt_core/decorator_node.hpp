@@ -13,9 +13,9 @@ public:
 	}
 
 public:
-	bool GetChildrens(std::vector<IBehaviourTreeNodeBehaviour *> &childrens) final {
+	bool GetChildrens(std::vector<IBehaviourTreeNodeBehaviour *> &childrens) const final {
 		if (m_Child.is_valid()) {
-			childrens.emplace_back(*m_Child);
+			childrens.emplace_back(const_cast<IBehaviourTreeNodeBehaviour*>(*m_Child));
 			return true;
 		}
 		return false;

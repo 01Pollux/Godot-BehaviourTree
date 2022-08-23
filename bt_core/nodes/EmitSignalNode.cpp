@@ -4,19 +4,27 @@
 
 namespace behaviour_tree::nodes {
 void BehaviourTreeEmitSignalNode::Initialize() {
-	Ref<BehaviourTree> tree = get_meta("behaviour_tree");
-	if (tree.is_valid())
-		m_TargetObject = ObjectDB::get_instance(tree->get_meta("bt_node_object"));
+	Node *holder = Object::cast_to<Node>(GetBehaviourTree()->get_meta("bt_target_node"));
+	if (holder && !m_TargetPath.is_empty())
+		m_TargetNode = holder->get_node(m_TargetPath);
+	else
+		m_TargetNode = holder;
 }
 
 NodeState BehaviourTreeEmitSignalNode::OnExecute() {
-	m_TmpArgs.clear();
-	m_TmpArgs.reserve(m_Args.size());
+	std::vector<const Variant *> args;
+	args.reserve(m_Args.size());
 
 	for (size_t i = 0; i < m_Args.size(); i++)
-		m_TmpArgs.emplace_back(&m_Args[i]);
+		args.emplace_back(&m_Args[i]);
 
-	m_TargetObject->emit_signalp(m_Signal, m_TmpArgs.data(), m_Args.size());
+	if (m_TargetNode->emit_signalp(m_SignalName, args.data(), m_Args.size()) != Error::OK) {
+#if TOOLS_ENABLED
+		ERR_FAIL_V_MSG(NodeState::Failure, "Failed to emit signal " + m_SignalName + " of node " + m_TargetNode->get_path());
+#else
+		return NodeState::Failure;
+#endif
+	}
 
 	return NodeState::Success;
 }

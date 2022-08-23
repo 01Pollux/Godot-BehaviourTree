@@ -7,7 +7,7 @@ class IBehaviourTreeActionNode : public IBehaviourTreeNodeBehaviour {
 	GDCLASS(IBehaviourTreeActionNode, IBehaviourTreeNodeBehaviour);
 
 public:
-	bool GetChildrens(std::vector<IBehaviourTreeNodeBehaviour *> &) final {
+	bool GetChildrens(std::vector<IBehaviourTreeNodeBehaviour *> &) const final {
 		return false;
 	}
 };
