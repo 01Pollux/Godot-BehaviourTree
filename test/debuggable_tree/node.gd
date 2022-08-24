@@ -7,4 +7,4 @@ func _ready():
 	tree_holder.vbehaviour_tree = exec_tree
 
 func _process(_delta):
-	exec_tree.behaviour_tree.execute_tree()
+	exec_tree.execute_tree()

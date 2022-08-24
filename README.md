@@ -46,6 +46,14 @@ A statically implemented Behaviour Tree logic in Godot 4.0+
 * Call `behaviour_tree.execute_tree()` in whatever logic / event you want.
 
 
+## Auto-initialized Tree
+* Create a node of type `BehaviourTreeHolder`.
+
+* Set the `Target Node` to it's parent or root. (It's advised to use root unqiue scene rather than using the main scene/subscene).
+
+* Set the `Behaviour Tree` to the resource in file or generate one by right clicking it. (It's advised to use a file generated behaviour tree to be able to debug the tree at runtime).
+
+
 ## Adding custom nodes
 * Check the **/test/** in the github repository for the example.
 

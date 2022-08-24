@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://brsb1f1wxbudk"]
 
 [ext_resource type="Script" path="res://node.gd" id="1_2wcuy"]
-[ext_resource type="VBehaviourTreeResource" path="res://new_v_behaviour_tree_resource.vbtree" id="2_q67iw"]
+[ext_resource type="VisualBehaviourTree" path="res://new_v_behaviour_tree_resource.vbtree" id="2_q67iw"]
 
 [node name="Node" type="Node"]
 script = ExtResource("1_2wcuy")

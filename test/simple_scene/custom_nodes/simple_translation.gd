@@ -8,9 +8,8 @@ var cur_node:Node2D
 var start_position
 
 func _on_btnode_initialize():
-	var btree = get_meta("behaviour_tree") as BehaviourTree
-	cur_node = btree.get_meta("bt_node_object") as Node2D;
-	pass
+	var btree = get_behaviour_tree() as BehaviourTree
+	cur_node = btree.get_blackboard("bt_target_node") as Node2D
 
 func _on_btnode_enter():
 	start_position = cur_node.global_position

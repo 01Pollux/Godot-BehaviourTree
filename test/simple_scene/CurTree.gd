@@ -4,10 +4,8 @@ extends Sprite2D
 
 
 func _ready():
-	behaviour_tree.set_meta("bt_node_object", self)
+	behaviour_tree.set_blackboard("bt_target_node", self)
 	behaviour_tree.initialize_tree()
-	
-	pass
 
 
 func _process(delta):
